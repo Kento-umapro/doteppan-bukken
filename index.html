@@ -1,4 +1,6 @@
 <title>どてっぱん 出店物件情報</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --ink:#17130f; --ink2:#2a241d; --sub:#6f665a; --paper:#f6f2ea; --card:#fffdf8;
@@ -110,6 +112,18 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
   padding:11px 10px;border-radius:10px;border:1.5px solid var(--ink);color:var(--ink);background:#fff;letter-spacing:.02em}
 .acts a.tel{background:var(--red);border-color:var(--red);color:#fff}
 .acts a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.vtoggle{display:flex;margin:10px 0 4px}
+.vbtn{border:1px solid var(--line);background:#fff;padding:9px 22px;font:inherit;font-size:13.5px;font-weight:800;color:var(--sub);cursor:pointer}
+.vbtn:first-child{border-radius:10px 0 0 10px}.vbtn:last-child{border-radius:0 10px 10px 0;border-left:0}
+.vbtn.on{background:var(--ink);color:#f5efe3;border-color:var(--ink)}
+#map{height:64vh;min-height:380px;border-radius:16px;border:1px solid var(--line)}
+#mapWrap{margin:12px 0}
+.mapnote{font-size:11.5px;color:var(--sub);margin:8px 2px 0}
+.pinlab{background:transparent;border:none;box-shadow:none;color:#fff;font-weight:800;font-size:10px;font-family:inherit}
+.pop{font-family:inherit;min-width:190px}
+.pop b.t{display:block;font-size:13px;margin-bottom:2px}
+.pop .m{font-size:12px;color:#555;margin:0 0 6px}
+.pop .go{display:inline-block;background:#c2352a;color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;text-decoration:none}
 .empty{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:30px 20px;text-align:center;margin-top:24px}
 .empty b{display:block;font-size:16px;margin-bottom:6px}
 .empty p{margin:0;font-size:13px;color:var(--sub)}
@@ -161,6 +175,11 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
   <p class="crumb"><a href="#" id="back">← エリア選択にもどる</a></p>
   <h2 class="pref" id="prefName"></h2>
   <p class="meta" id="prefMeta"></p>
+  <div class="vtoggle" id="vtoggle" style="display:none">
+    <button class="vbtn on" data-v="list">📋 リスト</button>
+    <button class="vbtn" data-v="map">🗾 マップ</button>
+  </div>
+  <div id="mapWrap" class="hide"><div id="map"></div><p class="mapnote">ピンの位置は住所（丁目）からの概算です。タップで物件情報を表示。</p></div>
   <div id="prefBody"></div>
   <p class="foot">掲載情報は調査時点（2026年7月3日）の各サイト募集情報です。「非公開」物件のビル名・番地・保証金は、掲載サイトの無料会員登録または掲載会社への問い合わせで開示されます。申込前に必ず最新の募集状況をご確認ください。</p>
 </div>
@@ -194,16 +213,16 @@ const SECTIONS = [
 ];
 /* food: ok=重飲食可 / lt=軽飲食のみ / cn=条件あり・要確認  tk=坪単価(共益費込み目安) */
 const OSAKA = [
- {sc:57.9,rk:"B",pr:"+70万〜+96万",s:"f1",n:"非公開（中崎町）",a:"北区黒崎町",st:"中崎町駅 徒歩3分",t:"29.34坪",r:"42.1万円",rs:"",tk:"約1.44万円",d:"要問い合わせ",c:"飲食店居抜き",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/384007"]]},
- {sc:54.9,rk:"B",pr:"+69万〜+92万",s:"f1",n:"非公開（新世界・2026年4月竣工）",a:"浪速区恵美須西3",st:"動物園前駅・恵美須町駅すぐ",t:"25.2坪",r:"29.1万円",rs:"共益費なし",tk:"約1.16万円",d:"保証金6ヶ月・礼金3ヶ月",c:"新築スケルトン・テラス付き",f:"lt",fn:"軽飲食向き（ラーメン・焼肉等の匂いの強い業態は不可）",u:[["テンポスマート","https://www.temposmart.jp/estates/209388"]]},
- {sc:54.8,rk:"B",pr:"+69万〜+92万",s:"f1",n:"非公開（本町・西本町）",a:"西区西本町1",st:"本町駅 徒歩2分",t:"31.1坪",r:"49.5万円",rs:"前面駐車スペース有",tk:"約1.59万円",d:"敷金2ヶ月・礼金1ヶ月",c:"スケルトン",f:"lt",fn:"軽飲食のみ（カフェ等は相談可）",u:[["テンポスマート","https://www.temposmart.jp/estates/197865"]]},
- {sc:54.5,rk:"B",pr:"+85万〜+102万",s:"f1",n:"非公開（日本橋・恵美須町）",a:"浪速区日本橋東1",st:"恵美須町駅近く",t:"27坪",r:"32.4万円",rs:"管理費なし",tk:"約1.20万円",d:"敷金1ヶ月・礼金2ヶ月",c:"物販店跡の居抜き・即入居可",f:"ok",u:[["テンポスマート","https://www.temposmart.jp/estates/189195"]]},
- {sc:53.6,rk:"B",pr:"+85万〜+102万",s:"f1",n:"非公開（本町・備後町）",a:"中央区備後町4",st:"本町駅 徒歩3分",t:"29.05坪",r:"44.7万円",rs:"",tk:"約1.54万円",d:"要問い合わせ",c:"スケルトン（前業態カフェ）",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/365770"]]},
- {sc:52.9,rk:"B",pr:"+85万〜+102万",s:"f1",n:"アリタマンション日本橋",a:"浪速区日本橋東1",st:"日本橋駅 徒歩10分",t:"31.57坪",r:"44万円",rs:"＋管理費1.1万円（敷金・保証金なし）",tk:"約1.43万円",d:"礼金2〜3.3ヶ月（掲載により差）",c:"空き・即引渡し可（専用トイレ・バスあり）",f:"ok",fn:"テンポスマート掲載では重飲食可、HOME'S掲載では業種相談",u:[["テンポスマート","https://www.temposmart.jp/estates/201032"],["HOME'S（㈱アフロ）","https://www.homes.co.jp/chintai/b-1284220218040/"]]},
- {sc:52.9,rk:"B",pr:"+85万〜+102万",s:"f1",n:"非公開（谷町四丁目）",a:"中央区徳井町1",st:"谷町四丁目駅 徒歩2分",t:"32.41坪",r:"53.5万円",rs:"",tk:"約1.65万円",d:"相談",c:"居酒屋居抜き",f:"lt",fn:"軽飲食のみ（重飲食不可）",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/388240"]]},
- {sc:53.0,rk:"B",pr:"+85万〜+102万",s:"f2",n:"非公開（天神橋筋商店街）",a:"北区天神橋5",st:"天神橋筋六丁目駅5分・JR天満駅6分",t:"35坪",r:"57.75万円",rs:"看板取付可",tk:"約1.65万円",d:"要問い合わせ",c:"スケルトン",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/394987"]]},
- {sc:50.1,rk:"C",pr:"+53万〜+77万",s:"b1",n:"非公開（天満橋・谷町）",a:"中央区内平野町2",st:"天満橋駅 徒歩7分",t:"27.17坪",r:"40万円",rs:"",tk:"約1.47万円",d:"要問い合わせ（保証会社加入必須）",c:"居抜き（業種要相談）",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/394233"]]},
- {sc:55.2,rk:"B",pr:"+69万〜+92万",s:"f3",n:"L OROモチノキビル 3階",a:"天王寺区東高津町9-23",st:"大阪上本町駅 徒歩4分",t:"29.69坪",r:"22万円",rs:"＋管理費4.4万円（EVあり）",tk:"約0.89万円",d:"敷金なし・礼金2ヶ月",c:"空き・即引渡し可",f:"cn",fn:"飲食・美容・物販など相談可",u:[["HOME'S（㈱アフロ）","https://www.homes.co.jp/chintai/b-1524080003087/"]]},
+ {ll:[34.7093,135.5068],sc:57.9,rk:"B",pr:"+70万〜+96万",s:"f1",n:"非公開（中崎町）",a:"北区黒崎町",st:"中崎町駅 徒歩3分",t:"29.34坪",r:"42.1万円",rs:"",tk:"約1.44万円",d:"要問い合わせ",c:"飲食店居抜き",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/384007"]]},
+ {ll:[34.6497,135.5043],sc:54.9,rk:"B",pr:"+69万〜+92万",s:"f1",n:"非公開（新世界・2026年4月竣工）",a:"浪速区恵美須西3",st:"動物園前駅・恵美須町駅すぐ",t:"25.2坪",r:"29.1万円",rs:"共益費なし",tk:"約1.16万円",d:"保証金6ヶ月・礼金3ヶ月",c:"新築スケルトン・テラス付き",f:"lt",fn:"軽飲食向き（ラーメン・焼肉等の匂いの強い業態は不可）",u:[["テンポスマート","https://www.temposmart.jp/estates/209388"]]},
+ {ll:[34.6832,135.493],sc:54.8,rk:"B",pr:"+69万〜+92万",s:"f1",n:"非公開（本町・西本町）",a:"西区西本町1",st:"本町駅 徒歩2分",t:"31.1坪",r:"49.5万円",rs:"前面駐車スペース有",tk:"約1.59万円",d:"敷金2ヶ月・礼金1ヶ月",c:"スケルトン",f:"lt",fn:"軽飲食のみ（カフェ等は相談可）",u:[["テンポスマート","https://www.temposmart.jp/estates/197865"]]},
+ {ll:[34.6572,135.5088],sc:54.5,rk:"B",pr:"+85万〜+102万",s:"f1",n:"非公開（日本橋・恵美須町）",a:"浪速区日本橋東1",st:"恵美須町駅近く",t:"27坪",r:"32.4万円",rs:"管理費なし",tk:"約1.20万円",d:"敷金1ヶ月・礼金2ヶ月",c:"物販店跡の居抜き・即入居可",f:"ok",u:[["テンポスマート","https://www.temposmart.jp/estates/189195"]]},
+ {ll:[34.686,135.4985],sc:53.6,rk:"B",pr:"+85万〜+102万",s:"f1",n:"非公開（本町・備後町）",a:"中央区備後町4",st:"本町駅 徒歩3分",t:"29.05坪",r:"44.7万円",rs:"",tk:"約1.54万円",d:"要問い合わせ",c:"スケルトン（前業態カフェ）",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/365770"]]},
+ {ll:[34.6553,135.5097],sc:52.9,rk:"B",pr:"+85万〜+102万",s:"f1",n:"アリタマンション日本橋",a:"浪速区日本橋東1",st:"日本橋駅 徒歩10分",t:"31.57坪",r:"44万円",rs:"＋管理費1.1万円（敷金・保証金なし）",tk:"約1.43万円",d:"礼金2〜3.3ヶ月（掲載により差）",c:"空き・即引渡し可（専用トイレ・バスあり）",f:"ok",fn:"テンポスマート掲載では重飲食可、HOME'S掲載では業種相談",u:[["テンポスマート","https://www.temposmart.jp/estates/201032"],["HOME'S（㈱アフロ）","https://www.homes.co.jp/chintai/b-1284220218040/"]]},
+ {ll:[34.6838,135.5168],sc:52.9,rk:"B",pr:"+85万〜+102万",s:"f1",n:"非公開（谷町四丁目）",a:"中央区徳井町1",st:"谷町四丁目駅 徒歩2分",t:"32.41坪",r:"53.5万円",rs:"",tk:"約1.65万円",d:"相談",c:"居酒屋居抜き",f:"lt",fn:"軽飲食のみ（重飲食不可）",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/388240"]]},
+ {ll:[34.7062,135.5116],sc:53.0,rk:"B",pr:"+85万〜+102万",s:"f2",n:"非公開（天神橋筋商店街）",a:"北区天神橋5",st:"天神橋筋六丁目駅5分・JR天満駅6分",t:"35坪",r:"57.75万円",rs:"看板取付可",tk:"約1.65万円",d:"要問い合わせ",c:"スケルトン",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/394987"]]},
+ {ll:[34.6886,135.514],sc:50.1,rk:"C",pr:"+53万〜+77万",s:"b1",n:"非公開（天満橋・谷町）",a:"中央区内平野町2",st:"天満橋駅 徒歩7分",t:"27.17坪",r:"40万円",rs:"",tk:"約1.47万円",d:"要問い合わせ（保証会社加入必須）",c:"居抜き（業種要相談）",f:"ok",u:[["飲食店.com","https://www.inshokuten.com/bukken/bukkens/394233"]]},
+ {ll:[34.6673,135.5183],sc:55.2,rk:"B",pr:"+69万〜+92万",s:"f3",n:"L OROモチノキビル 3階",a:"天王寺区東高津町9-23",st:"大阪上本町駅 徒歩4分",t:"29.69坪",r:"22万円",rs:"＋管理費4.4万円（EVあり）",tk:"約0.89万円",d:"敷金なし・礼金2ヶ月",c:"空き・即引渡し可",f:"cn",fn:"飲食・美容・物販など相談可",u:[["HOME'S（㈱アフロ）","https://www.homes.co.jp/chintai/b-1524080003087/"]]},
 ];
 
 /* ============ 都道府県 ============ */
@@ -243,6 +262,7 @@ function renderPref(p){
   const d=DATA[p], body=$('#prefBody');
   if(!d){
     $('#prefMeta').textContent='';
+    $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
     body.innerHTML=`<div class="empty"><b>${esc(p)}は現在物件を調査中です</b><p>目安基準（23〜40坪・坪単価8,000〜20,000円・飲食可・1階路面優先）で順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`;
     window.scrollTo(0,0); return;
   }
@@ -252,10 +272,10 @@ function renderPref(p){
     if(!items.length) return '';
     return `<div class="sec"><h3><span class="rank ${sec.cls}">${sec.rank}</span>${sec.title}（${items.length}件）</h3>`+
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
-      `<div class="cards">`+items.map(x=>{
+      `<div class="cards">`+items.map(x=>{ const cid='bk'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.floor(x.sc*10));
         const links=(x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
-        return `<div class="card">
+        return `<div class="card" id="${cid}">
           <div class="ctop"><h4>${esc(x.n)}</h4>${x.sc?`<div class="sc"><b>${x.sc}</b><span>ランク${esc(x.rk)}</span></div>`:``}</div>
           <div class="badges"><span class="bg fl">${floorBadge(x.s)}</span>${FOODBG[x.f]||''}<span class="bg">${esc(x.c)}</span></div>
           <dl class="kv">
@@ -269,6 +289,8 @@ function renderPref(p){
           <div class="acts">${tel}${links}</div>
         </div>`;}).join('')+`</div></div>`;
   }).join('');
+  buildMap(d.items);
+  setView('list');
   window.scrollTo(0,0);
 }
 
@@ -293,6 +315,40 @@ $('#pwGo').addEventListener('click',tryPass);
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryPass();});
 $('#pwCancel').addEventListener('click',()=>{$('#gate').classList.remove('on');pendingPref=null;});
 $('#back').addEventListener('click',e=>{e.preventDefault();$('#pref').classList.add('hide');$('#top').classList.remove('hide');window.scrollTo(0,0);});
+/* ============ マップ表示 ============ */
+let mapObj=null;
+const FLCOLOR={f1:'#c2352a',f2:'#7a6a4f',b1:'#5d6672',f3:'#8a8378'};
+function cardId(x){return 'bk'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.floor(x.sc*10));}
+function setView(v){
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#mapWrap').classList.toggle('hide',v!=='map');
+  $('#prefBody').classList.toggle('hide',v==='map');
+  if(v==='map'&&mapObj){setTimeout(()=>mapObj.invalidateSize(),60);}
+}
+document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
+window.__jumpCard=(id)=>{setView('list');setTimeout(()=>{const el=document.getElementById(id);
+  if(el){el.scrollIntoView({block:'center'});el.style.outline='3px solid #c2352a';setTimeout(()=>el.style.outline='',2200);}},80);};
+function buildMap(items){
+  const ok=(typeof L!=='undefined')&&items.some(x=>x.ll);
+  $('#vtoggle').style.display=ok?'flex':'none';
+  if(!ok){$('#mapWrap').classList.add('hide');return;}
+  if(mapObj){mapObj.remove();mapObj=null;}
+  mapObj=L.map('map',{scrollWheelZoom:false});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,
+    attribution:'&copy; OpenStreetMap contributors'}).addTo(mapObj);
+  const pts=[];
+  items.filter(x=>x.ll).forEach(x=>{
+    const c=FLCOLOR[x.s]||'#c2352a';
+    const mk=L.circleMarker(x.ll,{radius:11,color:'#fff',weight:2.5,fillColor:c,fillOpacity:.95}).addTo(mapObj);
+    mk.bindTooltip(String(x.sc),{permanent:true,direction:'center',className:'pinlab'});
+    mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
+      `<p class="m">${floorBadge(x.s)}｜スコア${x.sc}（ランク${esc(x.rk)}）<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>大阪市${esc(x.a)}</p>`+
+      `<a class="go" href="javascript:__jumpCard('${cardId(x)}')">リストで詳細を見る</a></div>`);
+    pts.push(x.ll);
+  });
+  mapObj.fitBounds(pts,{padding:[36,36]});
+}
+
 
 renderTop();
 </script>
