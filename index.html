@@ -113,9 +113,9 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
   padding:11px 10px;border-radius:10px;border:1.5px solid var(--ink);color:var(--ink);background:#fff;letter-spacing:.02em}
 .acts a.tel{background:var(--red);border-color:var(--red);color:#fff}
 .acts a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
-.vtoggle{display:flex;margin:10px 0 4px}
-.vbtn{border:1px solid var(--line);background:#fff;padding:9px 22px;font:inherit;font-size:13.5px;font-weight:800;color:var(--sub);cursor:pointer}
-.vbtn:first-child{border-radius:10px 0 0 10px}.vbtn:last-child{border-radius:0 10px 10px 0;border-left:0}
+.vtoggle{display:flex;margin:12px 0 6px;width:100%}
+.vbtn{flex:1;border:1.5px solid var(--line);background:#fff;padding:15px 10px;font:inherit;font-size:16px;font-weight:800;color:var(--sub);cursor:pointer;letter-spacing:.04em}
+.vbtn:first-child{border-radius:12px 0 0 12px}.vbtn:last-child{border-radius:0 12px 12px 0;border-left:0}
 .vbtn.on{background:var(--ink);color:#f5efe3;border-color:var(--ink)}
 #map{height:64vh;min-height:380px;border-radius:16px;border:1px solid var(--line)}
 #mapWrap{margin:12px 0}
@@ -177,8 +177,8 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
   <h2 class="pref" id="prefName"></h2>
   <p class="meta" id="prefMeta"></p>
   <div class="vtoggle" id="vtoggle" style="display:none">
-    <button class="vbtn on" data-v="list">📋 リスト</button>
-    <button class="vbtn" data-v="map">🗾 マップ</button>
+    <button class="vbtn on" data-v="list">📋 リスト表示</button>
+    <button class="vbtn" data-v="map">🗾 マップ表示</button>
   </div>
   <div id="mapWrap" class="hide"><div id="map"></div><p class="mapnote">ピンの数字は<b>出店偏差値</b>（既存12店舗の実績と比較した出店評価。50＝既存店平均）。位置は住所（丁目）からの概算です。タップで物件情報を表示。</p></div>
   <div id="prefBody"></div>
