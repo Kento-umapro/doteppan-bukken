@@ -323,7 +323,7 @@ function setView(v){
   document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('#mapWrap').classList.toggle('hide',v!=='map');
   $('#prefBody').classList.toggle('hide',v==='map');
-  if(v==='map'&&mapObj){setTimeout(()=>mapObj.invalidateSize(),60);}
+  if(v==='map'&&mapObj){setTimeout(()=>{mapObj.invalidateSize();if(window.__pts&&window.__pts.length)mapObj.fitBounds(window.__pts,{padding:[36,36]});},80);}
 }
 document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
 window.__jumpCard=(id)=>{setView('list');setTimeout(()=>{const el=document.getElementById(id);
@@ -346,6 +346,7 @@ function buildMap(items){
       `<a class="go" href="javascript:__jumpCard('${cardId(x)}')">リストで詳細を見る</a></div>`);
     pts.push(x.ll);
   });
+  window.__pts=pts;
   mapObj.fitBounds(pts,{padding:[36,36]});
 }
 
