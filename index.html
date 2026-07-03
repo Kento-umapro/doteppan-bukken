@@ -156,7 +156,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
       <li><span class="k">賃料</span><span>坪単価 <b>8,000円〜20,000円</b>／月（共益費・管理費込みの目安。例：25坪なら20〜50万円、40坪なら32〜80万円）</span></li>
       <li><span class="k">業態条件</span><span><b>飲食店営業可</b>（鉄板・もんじゃ＝重飲食のため「重飲食可」が理想）</span></li>
       <li><span class="k">階数優先度</span><span><b>① 1階路面店</b> ＞ ② 2階 ＞ ③ 地下1階 ＞ ④ 3階以上</span></li>
-      <li><span class="k">出店偏差値</span><span>既存12店舗の実績と比較した出店評価（物件スコア判定ツールによる算出）。<b>50＝既存店平均</b>で、<b>50以上の物件のみ掲載</b>。各物件カードの右上に表示</span></li>
+      <li><span class="k">出店偏差値</span><span>既存12店舗の実績と比較した出店評価（物件スコア判定ツールによる算出）。<b>50＝既存店平均</b>で、<b>50以上の物件のみ掲載</b>。各物件カードの右上に表示。利益目安は推定レンジの<b>下限（保守側）</b>を基準に表示</span></li>
     </ul>
     <p class="note">※ 掲載は募集情報の紹介であり、出店の承認・適合の保証ではありません。契約判断は現地確認と本部への相談のうえで行ってください。<br>※ 都道府県ページの閲覧には本部発行のパスワードが必要です。</p>
   </div>
@@ -363,9 +363,10 @@ function renderPref(p){
           <dl class="kv">
             <dt>賃料</dt><dd class="rent">${esc(x.r)} <small>${esc(x.rs||'')}</small></dd>
             <dt>広さ</dt><dd>${esc(x.t)}${x.tk?`　<b>坪単価 ${esc(x.tk)}</b><small>（込み目安）</small>`:''}</dd>
+            <dt>階数</dt><dd><b>${floorBadge(x.s)}</b></dd>
             <dt>所在地</dt><dd>${esc(x.a)}（${esc(x.st)}）</dd>
             <dt>敷金等</dt><dd>${esc(x.d)}</dd>
-            ${x.pr?`<dt>利益目安</dt><dd>月次営業利益 ${esc(x.pr)}<small>（類似既存店実績からのツール推定）</small></dd>`:''}${x.fn?`<dt>備考</dt><dd>${esc(x.fn)}</dd>`:''}
+            ${x.pr?(()=>{const pp=String(x.pr).split('〜');return `<dt>利益目安</dt><dd>月次営業利益 <b>${esc(pp[0].trim())}円〜（保守）</b><small>　上振れ時 ${esc((pp[1]||'').trim())}円。類似既存店実績レンジの下限を基準表示</small></dd>`;})():''}${x.fn?`<dt>備考</dt><dd>${esc(x.fn)}</dd>`:''}
             ${!x.tel?`<dt>問合せ</dt><dd>掲載サイト経由（無料会員登録で会社名・番地開示）</dd>`:''}
           </dl>
           <div class="acts">${tel}${links}</div>
