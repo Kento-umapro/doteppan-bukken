@@ -334,8 +334,8 @@ function buildMap(items){
   if(!ok){$('#mapWrap').classList.add('hide');return;}
   if(mapObj){mapObj.remove();mapObj=null;}
   mapObj=L.map('map',{scrollWheelZoom:false});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,
-    attribution:'&copy; OpenStreetMap contributors'}).addTo(mapObj);
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,
+    attribution:'地図: <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'}).addTo(mapObj);
   const pts=[];
   items.filter(x=>x.ll).forEach(x=>{
     const c=FLCOLOR[x.s]||'#c2352a';
