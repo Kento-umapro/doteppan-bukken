@@ -94,6 +94,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 .card h4{margin:0;font-size:15.5px;font-weight:800;line-height:1.55}
 .ctop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .sc{flex:none;text-align:center;background:var(--ink);color:#f5eedd;border-radius:10px;padding:5px 12px 6px;line-height:1.25}
+.sc i{display:block;font-style:normal;font-size:8.5px;letter-spacing:.06em;color:#cbb27f;font-weight:700}
 .sc b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
 .sc span{font-size:9.5px;letter-spacing:.08em;color:#d8b98a}
 .badges{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 10px}
@@ -155,7 +156,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
       <li><span class="k">賃料</span><span>坪単価 <b>8,000円〜20,000円</b>／月（共益費・管理費込みの目安。例：25坪なら20〜50万円、40坪なら32〜80万円）</span></li>
       <li><span class="k">業態条件</span><span><b>飲食店営業可</b>（鉄板・もんじゃ＝重飲食のため「重飲食可」が理想）</span></li>
       <li><span class="k">階数優先度</span><span><b>① 1階路面店</b> ＞ ② 2階 ＞ ③ 地下1階 ＞ ④ 3階以上</span></li>
-      <li><span class="k">スコア判定</span><span>どてっぱん物件スコア判定ツール（既存12店舗の実績ベース）で<b>偏差値50以上</b>（=既存店平均以上）の物件のみ掲載</span></li>
+      <li><span class="k">出店偏差値</span><span>既存12店舗の実績と比較した出店評価（物件スコア判定ツールによる算出）。<b>50＝既存店平均</b>で、<b>50以上の物件のみ掲載</b>。各物件カードの右上に表示</span></li>
     </ul>
     <p class="note">※ 掲載は募集情報の紹介であり、出店の承認・適合の保証ではありません。契約判断は現地確認と本部への相談のうえで行ってください。<br>※ 都道府県ページの閲覧には本部発行のパスワードが必要です。</p>
   </div>
@@ -179,7 +180,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
     <button class="vbtn on" data-v="list">📋 リスト</button>
     <button class="vbtn" data-v="map">🗾 マップ</button>
   </div>
-  <div id="mapWrap" class="hide"><div id="map"></div><p class="mapnote">ピンの位置は住所（丁目）からの概算です。タップで物件情報を表示。</p></div>
+  <div id="mapWrap" class="hide"><div id="map"></div><p class="mapnote">ピンの数字は<b>出店偏差値</b>（既存12店舗の実績と比較した出店評価。50＝既存店平均）。位置は住所（丁目）からの概算です。タップで物件情報を表示。</p></div>
   <div id="prefBody"></div>
   <p class="foot">掲載情報は調査時点（2026年7月3日）の各サイト募集情報です。「非公開」物件のビル名・番地・保証金は、掲載サイトの無料会員登録または掲載会社への問い合わせで開示されます。申込前に必ず最新の募集状況をご確認ください。</p>
 </div>
@@ -235,7 +236,7 @@ const REGIONS = [
  ["四国",["徳島県","香川県","愛媛県","高知県"]],
  ["九州・沖縄",["福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"]],
 ];
-const DATA = { "大阪府": {items: OSAKA, note: "大阪環状線の内側（梅田・本町・心斎橋・谷町・上本町・日本橋ほか）／2026年7月3日調査・スコア判定済（偏差値50未満は非掲載。商圏人口は概算値による一次判定）"} };
+const DATA = { "大阪府": {items: OSAKA, note: "大阪環状線の内側（梅田・本町・心斎橋・谷町・上本町・日本橋ほか）／2026年7月3日調査・スコア判定済（出店偏差値50未満は非掲載。商圏人口は概算値による一次判定）"} };
 
 /* ============ render ============ */
 const $=s=>document.querySelector(s);
@@ -276,7 +277,7 @@ function renderPref(p){
         const links=(x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
         return `<div class="card" id="${cid}">
-          <div class="ctop"><h4>${esc(x.n)}</h4>${x.sc?`<div class="sc"><b>${x.sc}</b><span>ランク${esc(x.rk)}</span></div>`:``}</div>
+          <div class="ctop"><h4>${esc(x.n)}</h4>${x.sc?`<div class="sc"><i>出店偏差値</i><b>${x.sc}</b><span>ランク${esc(x.rk)}</span></div>`:``}</div>
           <div class="badges"><span class="bg fl">${floorBadge(x.s)}</span>${FOODBG[x.f]||''}<span class="bg">${esc(x.c)}</span></div>
           <dl class="kv">
             <dt>賃料</dt><dd class="rent">${esc(x.r)} <small>${esc(x.rs||'')}</small></dd>
@@ -342,7 +343,7 @@ function buildMap(items){
     const mk=L.circleMarker(x.ll,{radius:11,color:'#fff',weight:2.5,fillColor:c,fillOpacity:.95}).addTo(mapObj);
     mk.bindTooltip(String(x.sc),{permanent:true,direction:'center',className:'pinlab'});
     mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
-      `<p class="m">${floorBadge(x.s)}｜スコア${x.sc}（ランク${esc(x.rk)}）<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>大阪市${esc(x.a)}</p>`+
+      `<p class="m">${floorBadge(x.s)}｜出店偏差値 ${x.sc}（ランク${esc(x.rk)}）<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>大阪市${esc(x.a)}</p>`+
       `<a class="go" href="javascript:__jumpCard('${cardId(x)}')">リストで詳細を見る</a></div>`);
     pts.push(x.ll);
   });
