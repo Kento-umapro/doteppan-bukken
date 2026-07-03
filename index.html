@@ -120,7 +120,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 #map{height:64vh;min-height:380px;border-radius:16px;border:1px solid var(--line)}
 #mapWrap{margin:12px 0}
 .mapnote{font-size:11.5px;color:var(--sub);margin:8px 2px 0}
-.pinlab{background:transparent;border:none;box-shadow:none;color:#fff;font-weight:800;font-size:10px;font-family:inherit}
+.pinlab{background:transparent;border:none;box-shadow:none;color:#fff;font-weight:800;font-size:12.5px;font-family:inherit}
 .pop{font-family:inherit;min-width:190px}
 .pop b.t{display:block;font-size:13px;margin-bottom:2px}
 .pop .m{font-size:12px;color:#555;margin:0 0 6px}
@@ -340,7 +340,7 @@ function buildMap(items){
   const pts=[];
   items.filter(x=>x.ll).forEach(x=>{
     const c=FLCOLOR[x.s]||'#c2352a';
-    const mk=L.circleMarker(x.ll,{radius:11,color:'#fff',weight:2.5,fillColor:c,fillOpacity:.95}).addTo(mapObj);
+    const mk=L.circleMarker(x.ll,{radius:17,color:'#fff',weight:3,fillColor:c,fillOpacity:.96}).addTo(mapObj);
     mk.bindTooltip(String(x.sc),{permanent:true,direction:'center',className:'pinlab'});
     mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
       `<p class="m">${floorBadge(x.s)}｜出店偏差値 ${x.sc}（ランク${esc(x.rk)}）<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>大阪市${esc(x.a)}</p>`+
