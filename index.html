@@ -60,6 +60,19 @@ a{-webkit-tap-highlight-color:rgba(194,53,42,.2)}
 .newchip{display:inline-block;background:var(--red);color:#fff;font-size:9px;font-weight:800;border-radius:5px;padding:1px 5px;margin-right:6px;vertical-align:2px}
 .sc.scwait{background:#b8ac97;color:#fff}.sc.scwait span{color:#f2ead8}
 
+/* ===== tier tabs（標準／上級） ===== */
+.tiertab{display:flex;margin:22px 0 0;width:100%}
+.tbtn{flex:1;border:1.5px solid var(--line);background:#fff;padding:13px 8px;font:inherit;font-size:15px;font-weight:800;color:var(--sub);cursor:pointer;letter-spacing:.03em;line-height:1.45}
+.tbtn small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#a89c88}
+.tbtn:first-child{border-radius:12px 0 0 12px}
+.tbtn:last-child{border-radius:0 12px 12px 0;border-left:0}
+.tbtn.on{background:var(--ink);color:#f5efe3;border-color:var(--ink)}
+.tbtn.on small{color:#cbb27f}
+.tbtn.prem.on{background:linear-gradient(135deg,#3d2f16,#17130f);border-color:#8a6d2f;box-shadow:inset 0 0 0 1px #8a6d2f}
+.tbtn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.premnote{background:#faf5e6;border:1px solid #e2d3a8;border-radius:12px;padding:11px 15px;font-size:12.5px;color:#6b5a33;margin:12px 0 0;line-height:1.8}
+.tierchip{display:inline-block;vertical-align:4px;margin-left:8px;background:linear-gradient(135deg,#8a6d2f,#5c4718);color:#f7efd9;font-size:10.5px;font-weight:800;letter-spacing:.1em;border-radius:6px;padding:3px 10px}
+
 /* ===== brand footer (tate logo) ===== */
 .bfoot{margin:44px auto 0;text-align:center}
 .bfoot .fuda{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 22px 12px;
@@ -153,17 +166,24 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 <div id="top">
   <p class="lead">ここに掲載しているのは、広さ・賃料・階数の目安に合う、<b>どてっぱんの店舗として出店の可能性がある</b>物件です。加盟検討中の方・出店予定のオーナー様は、エリアを選んでご覧ください。</p>
 
+  <div class="tiertab" role="tablist" aria-label="物件区分">
+    <button class="tbtn on" data-t="std" role="tab" aria-selected="true">標準物件<small>坪単価 8,000〜20,000円</small></button>
+    <button class="tbtn prem" data-t="prem" role="tab" aria-selected="false">上級物件（1等立地）<small>坪単価 2万円超・偏差値50以上</small></button>
+  </div>
+
   <div class="criteria">
-    <h2>物件の目安基準（全エリア共通）</h2>
+    <h2 id="critTitle">物件の目安基準（全エリア共通）</h2>
     <ul>
       <li><span class="k">広さ</span><span><b>23坪〜40坪</b>（約76〜132㎡）</span></li>
-      <li><span class="k">賃料</span><span>坪単価 <b>8,000円〜20,000円</b>／月（共益費・管理費込みの目安。例：25坪なら20〜50万円、40坪なら32〜80万円）</span></li>
+      <li><span class="k">賃料</span><span id="critRent">坪単価 <b>8,000円〜20,000円</b>／月（共益費・管理費込みの目安。例：25坪なら20〜50万円、40坪なら32〜80万円）</span></li>
       <li><span class="k">業態条件</span><span><b>飲食店営業可</b>（鉄板・もんじゃ＝重飲食のため「重飲食可」が理想）</span></li>
       <li><span class="k">階数優先度</span><span><b>① 1階路面店</b> ＞ ② 2階 ＞ ③ 地下1階 ＞ ④ 3階以上</span></li>
       <li><span class="k">出店偏差値</span><span>既存12店舗の実績と比較した出店評価（物件スコア判定ツールによる算出）。<b>50＝既存店平均</b>で、<b>50以上の物件のみ掲載</b>。各物件カードの右上に表示。利益目安は推定レンジの<b>下限（保守側）</b>を基準に表示</span></li>
     </ul>
     <p class="note">※ 毎朝9時に新着を自動巡回し、掲載開始から30日を過ぎた物件は自動的に外れます（鮮度優先の入れ替え制）。自動追加分の出店偏差値は「判定待ち」表示になり、後日まとめて判定します。<br>※ 掲載は募集情報の紹介であり、出店の承認・適合の保証ではありません。契約判断は現地確認と本部への相談のうえで行ってください。<br>※ 都道府県ページの閲覧には本部発行のパスワードが必要です。</p>
   </div>
+
+  <div class="premnote hide" id="premNote">上級物件（1等立地）は、賃料が標準基準（坪単価2万円以下）を超えていても、立地の集客力により<b>既存12店舗の平均を上回る収益（出店偏差値50以上）が見込める</b>と判定された物件のみを掲載する特別枠です。</div>
 
   <div id="regions"></div>
 
@@ -226,7 +246,10 @@ const REGIONS = [
  ["四国",["徳島県","香川県","愛媛県","高知県"]],
  ["九州・沖縄",["福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"]],
 ];
-let DATA = {};
+let DATA = {};   // 標準物件（坪単価2万円以下）
+let PDATA = {};  // 上級物件（1等立地・坪単価2万円超・偏差値50以上）
+let TIER = 'std';
+function tierData(){ return TIER === 'prem' ? PDATA : DATA; }
 const NEW_DAYS = 3;      // 追加からこの日数は「新着」バッジ
 const EXPIRE_DAYS = 30;  // 追加からこの日数で自動非表示（更新スクリプト側でも除外）
 function daysSince(d){ return (Date.now() - new Date(d+'T00:00:00+09:00').getTime()) / 86400000; }
@@ -236,6 +259,9 @@ async function loadData(){
   for(const [k,v] of Object.entries(j.prefs)){
     DATA[k] = {note: v.note, items: (v.items||[]).filter(x=>!x.ad || daysSince(x.ad) <= EXPIRE_DAYS)};
   }
+  for(const [k,v] of Object.entries(j.premium||{})){
+    PDATA[k] = {note: v.note, items: (v.items||[]).filter(x=>!x.ad || daysSince(x.ad) <= EXPIRE_DAYS)};
+  }
 }
 
 /* ============ render ============ */
@@ -243,11 +269,12 @@ const $=s=>document.querySelector(s);
 function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 
 function renderTop(){
+  const D=tierData();
   const box=$('#regions');
   box.innerHTML=REGIONS.map(([rn,ps])=>
     `<div class="region"><h3>${rn}</h3><div class="pgrid">`+
     ps.map(p=>{
-      const has=DATA[p];
+      const has=D[p];
       const nn = has? has.items.filter(x=>x.ad && daysSince(x.ad) <= NEW_DAYS).length : 0;
       const badge = nn? `<span class="nbadge">新着${nn}件</span>` : '';
       return `<button class="pbtn${has?' has':''}" data-p="${p}">${badge}${p}`+
@@ -256,23 +283,49 @@ function renderTop(){
   box.querySelectorAll('.pbtn').forEach(b=>b.addEventListener('click',()=>requestPref(b.dataset.p)));
 }
 
+/* ============ 標準／上級タブ ============ */
+function applyTierUI(){
+  document.querySelectorAll('.tbtn').forEach(b=>{
+    const on = b.dataset.t === TIER;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  const prem = TIER === 'prem';
+  $('#critTitle').textContent = prem ? '上級物件（1等立地）の目安基準' : '物件の目安基準（全エリア共通）';
+  $('#critRent').innerHTML = prem
+    ? '坪単価 <b>2万円超</b>／月（共益費・管理費込み。1等立地・上級グレードの特別枠。例：25坪なら50万円超）'
+    : '坪単価 <b>8,000円〜20,000円</b>／月（共益費・管理費込みの目安。例：25坪なら20〜50万円、40坪なら32〜80万円）';
+  $('#premNote').classList.toggle('hide', !prem);
+}
+document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>{
+  if(TIER === b.dataset.t) return;
+  TIER = b.dataset.t;
+  applyTierUI();
+  renderTop();
+}));
+
 const FOODBG={ok:'<span class="bg ok">重飲食可</span>',lt:'<span class="bg lt">軽飲食向き</span>',cn:'<span class="bg cn">飲食条件 要確認</span>'};
 function floorBadge(sec){return {f1:"1階 路面",f2:"2階",b1:"地下1階",f3:"3階以上"}[sec];}
 
 function renderPref(p){
   $('#top').classList.add('hide'); $('#pref').classList.remove('hide');
-  $('#prefName').textContent=p;
-  const d=DATA[p], body=$('#prefBody');
+  const prem = TIER === 'prem';
+  $('#prefName').innerHTML = esc(p) + (prem ? '<span class="tierchip">上級物件</span>' : '');
+  const d=tierData()[p], body=$('#prefBody');
   if(!d){
     $('#prefMeta').textContent='';
     $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
-    body.innerHTML=`<div class="empty"><b>${esc(p)}は現在物件を調査中です</b><p>目安基準（23〜40坪・坪単価8,000〜20,000円・飲食可・1階路面優先）で順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`;
+    body.innerHTML = prem
+      ? `<div class="empty"><b>${esc(p)}の上級物件（1等立地）は現在調査中です</b><p>坪単価2万円超でも、立地の集客力により出店偏差値50以上が見込める1等立地物件を順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`
+      : `<div class="empty"><b>${esc(p)}は現在物件を調査中です</b><p>目安基準（23〜40坪・坪単価8,000〜20,000円・飲食可・1階路面優先）で順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`;
     window.scrollTo(0,0); return;
   }
-  $('#prefMeta').textContent=`対象: ${d.note}／掲載 ${d.items.length}件`;
+  $('#prefMeta').textContent=`${prem?'【上級物件・1等立地】':''}対象: ${d.note}／掲載 ${d.items.length}件`;
   if(!d.items.length){
     $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
-    body.innerHTML=`<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、目安基準（23〜40坪・坪単価8,000〜20,000円・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`;
+    body.innerHTML = prem
+      ? `<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、上級基準（23〜40坪・坪単価2万円超・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`
+      : `<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、目安基準（23〜40坪・坪単価8,000〜20,000円・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`;
     window.scrollTo(0,0); return;
   }
   body.innerHTML=SECTIONS.map(sec=>{
