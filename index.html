@@ -168,7 +168,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 
   <div class="tiertab" role="tablist" aria-label="物件区分">
     <button class="tbtn on" data-t="std" role="tab" aria-selected="true">標準物件<small>坪単価 8,000〜20,000円</small></button>
-    <button class="tbtn prem" data-t="prem" role="tab" aria-selected="false">上級物件（1等立地）<small>坪単価 2万円超・偏差値50以上</small></button>
+    <button class="tbtn prem" data-t="prem" role="tab" aria-selected="false">上級物件（1等立地）<small>坪単価 2万円超〜4万円・偏差値50以上</small></button>
   </div>
 
   <div class="criteria">
@@ -183,7 +183,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
     <p class="note">※ 毎朝9時に新着を自動巡回し、掲載開始から30日を過ぎた物件は自動的に外れます（鮮度優先の入れ替え制）。自動追加分の出店偏差値は「判定待ち」表示になり、後日まとめて判定します。<br>※ 掲載は募集情報の紹介であり、出店の承認・適合の保証ではありません。契約判断は現地確認と本部への相談のうえで行ってください。<br>※ 都道府県ページの閲覧には本部発行のパスワードが必要です。</p>
   </div>
 
-  <div class="premnote hide" id="premNote">上級物件（1等立地）は、賃料が標準基準（坪単価2万円以下）を超えていても、立地の集客力により<b>既存12店舗の平均を上回る収益（出店偏差値50以上）が見込める</b>と判定された物件のみを掲載する特別枠です。</div>
+  <div class="premnote hide" id="premNote">上級物件（1等立地）は、賃料が標準基準（坪単価2万円以下）を超えていても、立地の集客力により<b>既存12店舗の平均を上回る収益（出店偏差値50以上）が見込める</b>と判定された物件のみを掲載する特別枠です（坪単価の上限は4万円）。</div>
 
   <div id="regions"></div>
 
@@ -247,7 +247,7 @@ const REGIONS = [
  ["九州・沖縄",["福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"]],
 ];
 let DATA = {};   // 標準物件（坪単価2万円以下）
-let PDATA = {};  // 上級物件（1等立地・坪単価2万円超・偏差値50以上）
+let PDATA = {};  // 上級物件（1等立地・坪単価2万円超〜4万円・偏差値50以上）
 let TIER = 'std';
 function tierData(){ return TIER === 'prem' ? PDATA : DATA; }
 const NEW_DAYS = 3;      // 追加からこの日数は「新着」バッジ
@@ -293,7 +293,7 @@ function applyTierUI(){
   const prem = TIER === 'prem';
   $('#critTitle').textContent = prem ? '上級物件（1等立地）の目安基準' : '物件の目安基準（全エリア共通）';
   $('#critRent').innerHTML = prem
-    ? '坪単価 <b>2万円超</b>／月（共益費・管理費込み。1等立地・上級グレードの特別枠。例：25坪なら50万円超）'
+    ? '坪単価 <b>2万円超〜4万円</b>／月（共益費・管理費込み。1等立地・上級グレードの特別枠。例：25坪なら50万〜100万円）'
     : '坪単価 <b>8,000円〜20,000円</b>／月（共益費・管理費込みの目安。例：25坪なら20〜50万円、40坪なら32〜80万円）';
   $('#premNote').classList.toggle('hide', !prem);
 }
@@ -316,7 +316,7 @@ function renderPref(p){
     $('#prefMeta').textContent='';
     $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
     body.innerHTML = prem
-      ? `<div class="empty"><b>${esc(p)}の上級物件（1等立地）は現在調査中です</b><p>坪単価2万円超でも、立地の集客力により出店偏差値50以上が見込める1等立地物件を順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`
+      ? `<div class="empty"><b>${esc(p)}の上級物件（1等立地）は現在調査中です</b><p>坪単価2万円超〜4万円で、立地の集客力により出店偏差値50以上が見込める1等立地物件を順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`
       : `<div class="empty"><b>${esc(p)}は現在物件を調査中です</b><p>目安基準（23〜40坪・坪単価8,000〜20,000円・飲食可・1階路面優先）で順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`;
     window.scrollTo(0,0); return;
   }
@@ -324,7 +324,7 @@ function renderPref(p){
   if(!d.items.length){
     $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
     body.innerHTML = prem
-      ? `<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、上級基準（23〜40坪・坪単価2万円超・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`
+      ? `<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、上級基準（23〜40坪・坪単価2万円超〜4万円・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`
       : `<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、目安基準（23〜40坪・坪単価8,000〜20,000円・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`;
     window.scrollTo(0,0); return;
   }
