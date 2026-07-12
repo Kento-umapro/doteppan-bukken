@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>どてっぱん 物件スコア判定ツール v3.0</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#1F3A5F; --navy-deep:#152944; --orange:#E07B39; --orange-deep:#C56427;
+    --cream:#FAF3E7; --soft:#FDF8EF; --line:#D8CFBF; --mute:#6B6B6B;
+    --good:#2E7D32; --warn:#C62828; --mid:#ED6C02;
+    --good-bg:#E8F5E9; --warn-bg:#FFEBEE; --mid-bg:#FFF3E0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:"Hiragino Sans","Meiryo","Yu Gothic",sans-serif;background:var(--cream);color:#222;font-size:15px;line-height:1.6}
+  .wrap{max-width:1000px;margin:0 auto;padding:16px}
+  
+  header{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;padding:28px 20px;border-radius:16px;margin-bottom:20px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;top:0;right:-40px;width:200px;height:100%;background:var(--orange);opacity:.12;transform:skewX(-20deg)}
+  h1{font-size:22px;margin-bottom:4px;position:relative;z-index:1}
+  .badge-brand{display:inline-block;background:var(--orange);color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:bold;margin-right:8px}
+  .version{display:inline-block;background:rgba(255,255,255,.2);color:#fff;padding:2px 8px;border-radius:3px;font-size:11px;margin-left:8px;vertical-align:middle}
+  .subtitle{color:rgba(255,255,255,.75);font-size:13px;position:relative;z-index:1}
+  
+  .section{background:#fff;border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid var(--line)}
+  .section h2{font-size:17px;color:var(--navy);margin-bottom:6px}
+  .section-sub{color:var(--mute);font-size:12px;margin-bottom:14px}
+  
+  .step-num{display:inline-block;background:var(--navy);color:#fff;width:26px;height:26px;line-height:26px;text-align:center;border-radius:50%;font-size:13px;font-weight:bold;margin-right:8px;vertical-align:middle}
+  .section h2.with-num{display:inline-block;vertical-align:middle}
+  
+  /* ============ ベースラインランキング ============ */
+  .baseline-section{background:linear-gradient(180deg,#fff 0%,var(--soft) 100%)}
+  .baseline-intro{background:var(--mid-bg);border-left:4px solid var(--mid);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px;color:#555;line-height:1.6}
+  .baseline-intro strong{color:var(--navy)}
+  .normalize-notice{background:#E3F2FD;border-left:4px solid #1976D2;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:10px;color:#0D47A1;line-height:1.6}
+  .normalize-notice strong{color:#0D47A1}
+  .calib-notice{background:#EDE7F6;border-left:4px solid #5E35B1;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:10px;color:#311B92;line-height:1.6}
+  .calib-notice strong{color:#311B92}
+  
+  .reanalyze-box{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--soft);padding:10px 14px;border-radius:8px;border:1px solid var(--line);margin-bottom:12px;flex-wrap:wrap}
+  .reanalyze-info{font-size:12px;color:#555;flex:1;min-width:200px}
+  .reanalyze-info strong{color:var(--navy)}
+  #reanalyzeStatus{font-size:11px;color:var(--mute);margin-left:6px}
+  
+  .rank-tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .tab-btn{padding:7px 14px;border:1px solid var(--line);background:#fff;color:var(--mute);border-radius:999px;font-size:12px;cursor:pointer;font-weight:bold}
+  .tab-btn.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  
+  .view-container{display:none}
+  .view-container.active{display:block}
+  
+  /* 散布図 */
+  .scatter-box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px}
+  .scatter-wrap{position:relative;height:420px}
+  @media(max-width:520px){.scatter-wrap{height:340px}}
+  .scatter-legend{font-size:11px;color:var(--mute);margin-top:8px;text-align:center;line-height:1.6}
+  .quad-label{font-size:11px;color:#999;margin-top:6px;display:flex;justify-content:space-between}
+  
+  /* 軸切替タブ */
+  .axis-tab-btn{padding:6px 12px;border:1px solid var(--line);background:#fff;color:var(--mute);border-radius:6px;font-size:12px;cursor:pointer;font-weight:bold}
+  .axis-tab-btn:hover{background:var(--soft)}
+  .axis-tab-btn.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+  
+  /* テーブル */
+  .rank-table{width:100%;background:#fff;border-radius:10px;overflow:hidden;border:1px solid var(--line);font-size:12px}
+  .rank-table thead{background:var(--navy);color:#fff;position:sticky;top:0}
+  .rank-table th,.rank-table td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  .rank-table th{font-size:11px;font-weight:bold;cursor:pointer;user-select:none}
+  .rank-table th.sort-asc::after{content:" ▲"}
+  .rank-table th.sort-desc::after{content:" ▼"}
+  .rank-table tbody tr:hover{background:var(--soft)}
+  .rank-table tbody tr.new-property{background:#FFF3E0 !important;animation:pulse 1.5s ease-in-out infinite;font-weight:bold}
+  @keyframes pulse{0%,100%{background:#FFF3E0}50%{background:#FFE0B2}}
+  .rank-table .num{text-align:right;font-variant-numeric:tabular-nums}
+  .rank-table .rank-cell{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:bold;min-width:18px;text-align:center}
+  .rank-S{background:#FFD700;color:#333}
+  .rank-A{background:#A5D6A7;color:#1B5E20}
+  .rank-B{background:#FFF59D;color:#5D4037}
+  .rank-C{background:#FFCC80;color:#BF360C}
+  .rank-D{background:#EF9A9A;color:#B71C1C}
+  .ebitda-plus{color:var(--good);font-weight:bold}
+  .ebitda-minus{color:var(--warn);font-weight:bold}
+  .score-bar{display:inline-block;width:24px;height:4px;background:#eee;border-radius:2px;vertical-align:middle;margin-right:4px;overflow:hidden;position:relative}
+  .score-bar-fill{height:100%;position:absolute;left:0;top:0}
+  .cat-tag{display:inline-block;font-size:10px;color:#777;margin-top:2px}
+  .gap-indicator{font-size:11px;padding:2px 6px;border-radius:4px;display:inline-block;font-weight:bold}
+  .gap-up{background:#E8F5E9;color:var(--good)}
+  .gap-down{background:#FFEBEE;color:var(--warn)}
+  .gap-flat{background:#F5F5F5;color:#666}
+  
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  
+  /* ============ PDFアップロード ============ */
+  .upload-zone{border:2px dashed var(--orange);border-radius:12px;padding:24px 16px;text-align:center;background:var(--soft);cursor:pointer;transition:all .15s}
+  .upload-zone:hover,.upload-zone.drag{background:#FFE8D0;border-color:var(--orange-deep)}
+  .upload-zone.loading{background:#FFF3E0;pointer-events:none}
+  .upload-icon{font-size:32px;margin-bottom:6px}
+  .upload-text{font-weight:bold;color:var(--navy);margin-bottom:2px;font-size:14px}
+  .upload-hint{font-size:11px;color:var(--mute)}
+  #pdfInput{display:none}
+  
+  .pdf-status{margin-top:10px;padding:10px;border-radius:8px;background:var(--good-bg);border-left:4px solid var(--good);display:none;font-size:12px}
+  .pdf-status.show{display:block}
+  .pdf-status.err{background:var(--warn-bg);border-left-color:var(--warn)}
+  .pdf-status h3{font-size:13px;color:var(--good);margin-bottom:6px}
+  .pdf-status.err h3{color:var(--warn)}
+  .extract-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:5px;margin-top:6px}
+  .extract-item{background:#fff;padding:5px 8px;border-radius:5px;border:1px solid var(--line)}
+  .extract-label{font-size:10px;color:var(--mute);line-height:1.2}
+  .extract-value{font-size:13px;font-weight:bold;color:var(--navy)}
+  
+  /* ============ フォーム ============ */
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .field{display:flex;flex-direction:column}
+  .field label{font-size:11px;color:var(--mute);margin-bottom:3px;font-weight:bold}
+  .field input,.field select{padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;background:#fff;font-family:inherit}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 2px rgba(224,123,57,.12)}
+  .field .hint{font-size:10px;color:var(--mute);margin-top:2px}
+  .full{grid-column:1/-1}
+  .section-label{grid-column:1/-1;font-size:12px;color:var(--navy);font-weight:bold;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line)}
+  
+  .competitor-fetch{display:flex;gap:6px;align-items:stretch}
+  .competitor-fetch input{flex:1}
+  .btn-sm{background:#fff;border:1px solid var(--orange);color:var(--orange-deep);padding:7px 10px;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;white-space:nowrap}
+  .btn-sm:hover{background:var(--orange);color:#fff}
+  .btn-sm:disabled{background:#f5f5f5;color:#999;border-color:#ddd;cursor:not-allowed}
+  
+  .btn{background:var(--orange);color:#fff;border:0;padding:12px 20px;border-radius:9px;font-size:14px;font-weight:bold;cursor:pointer;width:100%;margin-top:12px;transition:all .15s}
+  .btn:hover{background:var(--orange-deep)}
+  .btn:disabled{background:#BBB;cursor:not-allowed}
+  
+  /* ============ 結果 ============ */
+  .results{display:none}
+  .results.show{display:block;animation:fadeIn .4s}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  
+  .score-hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;border-radius:14px;padding:20px;margin-bottom:12px;text-align:center}
+  .score-label{font-size:12px;opacity:.8;letter-spacing:1px}
+  .score-number{font-size:58px;font-weight:800;line-height:1;margin:3px 0}
+  .score-rank-badge{display:inline-block;padding:5px 18px;border-radius:999px;font-size:18px;font-weight:bold}
+  .score-hint{font-size:11px;opacity:.75;margin-top:8px}
+  .ebitda-projection{font-size:12px;color:rgba(255,255,255,.9);margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.15)}
+  .ebitda-projection-value{font-size:22px;font-weight:bold;color:#FFD580;display:block;margin-top:2px}
+  
+  .axis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:12px}
+  .axis-card{background:#fff;border-radius:9px;padding:10px;border:1px solid var(--line);text-align:center}
+  .axis-name{font-size:11px;color:var(--mute);margin-bottom:3px}
+  .axis-value{font-size:24px;font-weight:bold;color:var(--navy)}
+  .axis-bar{height:5px;background:#eee;border-radius:2px;margin-top:6px;overflow:hidden}
+  .axis-bar-fill{height:100%;border-radius:2px;transition:width .6s}
+  
+  .alert-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+  .alert{padding:9px 12px;border-radius:7px;display:flex;align-items:flex-start;gap:8px;font-size:12px}
+  .alert-red{background:var(--warn-bg);color:var(--warn);border-left:4px solid var(--warn)}
+  .alert-yellow{background:var(--mid-bg);color:var(--mid);border-left:4px solid var(--mid)}
+  .alert-green{background:var(--good-bg);color:var(--good);border-left:4px solid var(--good)}
+  .alert-icon{font-size:16px;flex-shrink:0}
+  
+  .interp{background:var(--soft);border-left:4px solid var(--orange);padding:12px 14px;border-radius:8px;font-size:13px}
+  .interp strong{color:var(--navy)}
+  .insight{background:#FFF3E0;padding:7px 10px;border-radius:6px;margin-top:6px;font-size:12px}
+  
+  footer{text-align:center;color:var(--mute);font-size:11px;padding:20px 0}
+  
+  @media(max-width:520px){
+    .wrap{padding:10px}
+    h1{font-size:17px}
+    .score-number{font-size:44px}
+    .section{padding:14px}
+    .competitor-fetch{flex-direction:column}
+    .competitor-fetch input,.btn-sm{width:100%}
+  }
+  
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(224,123,57,.3);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:4px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ============ 履歴FAB・モーダル ============ */
+  .history-fab{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;border:0;width:58px;height:58px;border-radius:50%;font-size:24px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:50;display:flex;align-items:center;justify-content:center;transition:all .15s}
+  .history-fab:hover{background:var(--navy-deep);transform:scale(1.06)}
+  .fab-badge{position:absolute;top:-4px;right:-4px;background:var(--orange);color:#fff;border-radius:999px;font-size:11px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;padding:0 6px;font-weight:bold;border:2px solid #fff}
+  
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-start;justify-content:center;padding:40px 12px;overflow-y:auto}
+  .modal-backdrop.show{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:960px;width:100%;max-height:calc(100vh - 80px);display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+  .modal-header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+  .modal-header h3{font-size:17px;color:var(--navy);margin:0}
+  .modal-actions{display:flex;gap:8px;align-items:center}
+  .modal-close{background:transparent;border:0;font-size:24px;color:var(--mute);cursor:pointer;line-height:1;padding:2px 10px;border-radius:6px}
+  .modal-close:hover{background:var(--warn-bg);color:var(--warn)}
+  .modal-body{padding:14px 20px;overflow-y:auto;flex:1}
+  .modal-empty{text-align:center;padding:40px 20px;color:var(--mute);font-size:13px}
+  
+  .btn-mini{background:#fff;border:1px solid var(--line);color:var(--navy);padding:6px 10px;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer}
+  .btn-mini:hover{background:var(--soft)}
+  
+  .history-table{width:100%;border-collapse:collapse;font-size:12px}
+  .history-table th,.history-table td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  .history-table thead{background:var(--navy);color:#fff;position:sticky;top:0;z-index:1}
+  .history-table th{font-size:11px;font-weight:bold}
+  .history-table tbody tr{transition:background .1s}
+  .history-table tbody tr:hover{background:var(--soft)}
+  .history-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+  .history-row-actions{display:flex;gap:4px}
+  .btn-icon{background:transparent;border:1px solid var(--line);cursor:pointer;padding:3px 7px;border-radius:4px;color:var(--mute);font-size:11px;font-weight:bold}
+  .btn-icon:hover{background:var(--soft)}
+  .btn-icon.load:hover{background:var(--mid-bg);color:var(--mid);border-color:var(--mid)}
+  .btn-icon.delete:hover{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+  .hist-meta{font-size:10px;color:var(--mute);margin-top:2px}
+  .registrant-tag{display:inline-block;background:var(--soft);color:var(--navy);padding:1px 6px;border-radius:4px;font-size:10px;margin-left:4px}
+  .history-rank-cell{display:inline-block;padding:1px 6px;border-radius:999px;font-size:10px;font-weight:bold;min-width:16px;text-align:center}
+  
+  .toast{position:fixed;bottom:90px;right:20px;background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:200;animation:slideIn .3s}
+  .toast.success{background:var(--good)}
+  .toast.error{background:var(--warn)}
+  @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+  
+  /* ============ オートコンプリート ============ */
+  .autocomplete-wrap{position:relative}
+  .autocomplete-dropdown{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.12);z-index:20;max-height:300px;overflow-y:auto;display:none;margin-top:2px}
+  .autocomplete-dropdown.show{display:block}
+  .ac-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line);font-size:13px}
+  .ac-item:last-child{border-bottom:0}
+  .ac-item:hover,.ac-item.active{background:var(--soft)}
+  .ac-main{color:var(--navy);font-weight:bold}
+  .ac-sub{color:var(--mute);font-size:11px;margin-top:2px}
+  .ac-loading{padding:14px;text-align:center;color:var(--mute);font-size:12px}
+  .ac-empty{padding:12px;color:var(--mute);font-size:12px;text-align:center}
+  
+  /* ============ 競合店舗カード ============ */
+  .comp-section{margin-bottom:12px;padding:8px;background:#fff;border-radius:6px}
+  .comp-section-title{font-weight:bold;font-size:12px;margin-bottom:6px}
+  .comp-store-list{display:flex;gap:6px;flex-wrap:wrap}
+  .comp-store-card{display:flex;align-items:center;gap:6px;background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:4px 8px 4px 4px;max-width:220px;overflow:hidden}
+  .comp-photo{width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0}
+  .comp-photo-placeholder{width:36px;height:36px;background:#f0f0f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .comp-store-info{min-width:0;flex:1}
+  .comp-store-name{font-size:11px;font-weight:bold;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+  .comp-store-meta{font-size:10px;color:var(--mute);margin-top:1px;display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  .weight-badge{display:inline-block;font-size:9px;padding:1px 4px;border-radius:3px;font-weight:bold}
+  .weight-badge.hot{background:#ffebee;color:#c62828}
+  .weight-badge.cool{background:#e0f2f1;color:#00695c}
+  .comp-more{font-size:11px;color:var(--mute);padding:8px}
+  
+  /* ============================================================ */
+  /* 印刷時の色保持・レイアウト最適化                              */
+  /* ============================================================ */
+  *, *::before, *::after{
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+  }
+  
+  @media print{
+    html, body{
+      background:#fff !important;
+      color:#222 !important;
+      font-size:11pt;
+    }
+    .wrap{
+      max-width:100%;
+      padding:0;
+    }
+    
+    header{
+      background:linear-gradient(135deg,#1F3A5F 0%,#152944 100%) !important;
+      color:#fff !important;
+      page-break-inside:avoid;
+    }
+    header::after{
+      background:#E07B39 !important;
+      opacity:.12 !important;
+    }
+    .badge-brand{background:#E07B39 !important;color:#fff !important}
+    .version{background:rgba(255,255,255,.2) !important;color:#fff !important}
+    
+    .section{
+      box-shadow:none !important;
+      border:1px solid #D8CFBF !important;
+      page-break-inside:avoid;
+    }
+    .baseline-section{
+      background:linear-gradient(180deg,#fff 0%,#FDF8EF 100%) !important;
+    }
+    
+    .normalize-notice{
+      background:#E3F2FD !important;
+      border-left:4px solid #1976D2 !important;
+      color:#0D47A1 !important;
+    }
+    .calib-notice{
+      background:#EDE7F6 !important;
+      border-left:4px solid #5E35B1 !important;
+      color:#311B92 !important;
+    }
+    .baseline-intro{
+      background:#FFF3E0 !important;
+      border-left:4px solid #ED6C02 !important;
+      color:#555 !important;
+    }
+    .reanalyze-box{
+      background:#FDF8EF !important;
+      border:1px solid #D8CFBF !important;
+    }
+    
+    .tab-btn.active{background:#1F3A5F !important;color:#fff !important}
+    .axis-tab-btn.active{background:#E07B39 !important;color:#fff !important;border-color:#E07B39 !important}
+    .step-num{background:#1F3A5F !important;color:#fff !important}
+    
+    .score-hero{
+      background:linear-gradient(135deg,#1F3A5F 0%,#152944 100%) !important;
+      color:#fff !important;
+      page-break-inside:avoid;
+    }
+    .ebitda-projection-value{color:#FFD580 !important}
+    
+    .rank-S{background:#FFD700 !important;color:#333 !important}
+    .rank-A{background:#A5D6A7 !important;color:#1B5E20 !important}
+    .rank-B{background:#FFF59D !important;color:#5D4037 !important}
+    .rank-C{background:#FFCC80 !important;color:#BF360C !important}
+    .rank-D{background:#EF9A9A !important;color:#B71C1C !important}
+    
+    .alert-red{background:#FFEBEE !important;color:#C62828 !important;border-left:4px solid #C62828 !important}
+    .alert-yellow{background:#FFF3E0 !important;color:#ED6C02 !important;border-left:4px solid #ED6C02 !important}
+    .alert-green{background:#E8F5E9 !important;color:#2E7D32 !important;border-left:4px solid #2E7D32 !important}
+    
+    .interp{background:#FDF8EF !important;border-left:4px solid #E07B39 !important}
+    .insight{background:#FFF3E0 !important}
+    
+    .gap-up{background:#E8F5E9 !important;color:#2E7D32 !important}
+    .gap-down{background:#FFEBEE !important;color:#C62828 !important}
+    .gap-flat{background:#F5F5F5 !important;color:#666 !important}
+    .weight-badge.hot{background:#ffebee !important;color:#c62828 !important}
+    .weight-badge.cool{background:#e0f2f1 !important;color:#00695c !important}
+    .registrant-tag{background:#FDF8EF !important;color:#1F3A5F !important}
+    
+    .rank-table thead, .history-table thead{
+      background:#1F3A5F !important;
+      color:#fff !important;
+    }
+    .rank-table tbody tr.new-property{
+      background:#FFF3E0 !important;
+      animation:none !important;
+    }
+    .ebitda-plus{color:#2E7D32 !important}
+    .ebitda-minus{color:#C62828 !important}
+    
+    .score-bar{background:#eee !important}
+    .score-bar-fill[style*="2E7D32"]{background:#2E7D32 !important}
+    .score-bar-fill[style*="C62828"]{background:#C62828 !important}
+    .score-bar-fill[style*="ED6C02"]{background:#ED6C02 !important}
+    
+    .comp-store-card{background:#FDF8EF !important;border:1px solid #D8CFBF !important}
+    .comp-photo-placeholder{background:#f0f0f0 !important}
+    
+    canvas{
+      max-width:100% !important;
+      height:auto !important;
+      page-break-inside:avoid;
+    }
+    .scatter-box{border:1px solid #D8CFBF !important}
+    
+    .scatter-box, .score-hero, .axis-grid, .alert, .interp, .pdf-status{
+      page-break-inside:avoid;
+    }
+    
+    .history-fab,
+    .modal-backdrop,
+    .toast,
+    .autocomplete-dropdown{
+      display:none !important;
+    }
+    
+    *, *::before, *::after{
+      animation:none !important;
+      transition:none !important;
+    }
+    
+    a[href]::after{content:"" !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="badge-brand">どてっぱん</span>物件スコア判定ツール<span class="version">v3.0</span></h1>
+    <div class="subtitle">Google Places API 統合 / 住所サジェスト・競合分類・口コミ加重 ＋ 実績自動較正スコアエンジン（LOOCV検証済）</div>
+  </header>
+
+  <!-- ============ 既存店ランキング（常時表示） ============ -->
+  <div class="section baseline-section">
+    <h2>📊 既存12店舗 スコア vs 営業利益実績</h2>
+    <div class="section-sub">現状の12店舗がツールでどう点数化されるかの一覧。新物件を評価するとこの中に挿入されます。</div>
+    
+    <div class="normalize-notice">
+      ⚖️ <strong>v3.0：売上・利益は税抜に統一しました（旧版は税込データでした）</strong><br>
+      <span style="font-size:11px;opacity:.85">運営委託・直営8店＝2026年5-6月POS実績の平均（税抜）。通常FC4店（刈谷・なんば・登戸・向ヶ丘遊園）＝5月実績を税込÷1.10で税抜換算。利益は全店ロイヤリティ5%統一で公平化した利益率×税抜売上で算出し、「物件本来のポテンシャル」で比較します。</span>
+    </div>
+    
+    <div class="calib-notice">
+      🧮 <strong>v3.0：スコア重みは実績から自動較正されます</strong><span id="calibWeights" style="font-size:11px"></span><br>
+      <span style="font-size:11px;opacity:.85">各軸と実利益率の相関（Spearman）を毎回計算し、業界標準の事前重み（商圏30/競合25/家賃20/検索15/採用10）とブレンド（データ比率 α=店舗数÷(店舗数+24)）。店舗と月次実績が増えるほど自動的に精度が上がります。旧固定重みの予測順位相関 −0.60 → v3.0で +0.39、類似店予測の平均誤差 4.3pt → 3.2pt（1店抜き交差検証）。</span>
+    </div>
+    
+    <div class="baseline-intro">
+      💡 <strong>見方のポイント</strong>：スコア（物件の数値スペック評価）と営業利益実績は必ずしも一致しません。その「ズレ」がオーナーのオペレーション力や立地の質的要因を物語ります。
+      <br>例：<strong>京都木屋町</strong>（観光繁華街・インバウンド30〜40%）は21坪最小店舗で売上・利益率トップ。「単価でなく回転で勝つ」京都モデル。
+    </div>
+    
+    <div class="reanalyze-box">
+      <div class="reanalyze-info">
+        <strong>🏪 12店舗周辺の業態別分類</strong><span id="reanalyzeStatus">（初期値: 地域特性推定値）</span>
+        <div style="font-size:11px;opacity:.8;margin-top:3px">🍳直撃(-3点/軒) 🍺共食+2点/軒(最大+30) 🍜中立(-1点/軒) ※ 口コミ件数で自動加重</div>
+      </div>
+      <button class="btn-sm" id="reanalyzeBtn">🔄 Googleで12店舗再分析</button>
+    </div>
+    
+    <div class="rank-tabs">
+      <button class="tab-btn active" data-view="scatter">🎯 散布図</button>
+      <button class="tab-btn" data-view="table">📋 ランキング表</button>
+    </div>
+    
+    <!-- 散布図ビュー -->
+    <div class="view-container active" id="view-scatter">
+      <div class="scatter-box">
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="axis-tab-btn active" data-axis="profit">💰 営業利益額</button>
+          <button class="axis-tab-btn" data-axis="ebitda">📊 営業利益率</button>
+        </div>
+        <div class="scatter-wrap"><canvas id="scatterChart"></canvas></div>
+        <div class="scatter-legend" id="scatterLegend">
+          縦軸 = 月次営業利益額（万円）/ 横軸 = 物件スコア（偏差値50 = 12店舗平均）<br>
+          <span style="color:var(--good)">●</span> 黒字店 &nbsp;
+          <span style="color:var(--warn)">●</span> 赤字店 &nbsp;
+          <span style="color:var(--orange)">★</span> 新物件（評価後に表示）
+          <br><span style="font-size:10px;color:#999">※ 2026年5-6月実績（税抜）。ロイヤリティ5%統一公平化後の店舗側営業利益</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ランキング表ビュー -->
+    <div class="view-container" id="view-table">
+      <div class="table-scroll">
+        <table class="rank-table" id="rankTable">
+          <thead>
+            <tr>
+              <th data-sort="rankNum">#</th>
+              <th data-sort="name">店舗</th>
+              <th class="num" data-sort="total" class="sort-desc">総合</th>
+              <th data-sort="rank">ランク</th>
+              <th class="num" data-sort="pop">需要効率</th>
+              <th class="num" data-sort="comp">競合</th>
+              <th class="num" data-sort="rent">家賃</th>
+              <th class="num" data-sort="search">検索</th>
+              <th class="num" data-sort="hire">採用</th>
+              <th class="num" data-sort="revenue">月商</th>
+              <th class="num" data-sort="profit">営業利益</th>
+              <th class="num" data-sort="ebitda">利益率</th>
+              <th>乖離</th>
+            </tr>
+          </thead>
+          <tbody id="rankTableBody"></tbody>
+        </table>
+        <div style="font-size:10px;color:#999;margin-top:6px;padding:6px">※ 2026年5-6月実績（税抜・通常FC4店は5月税抜換算）。全店舗ロイヤリティ5%統一の公平化数値</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STEP 1: Upload ============ -->
+  <div class="section">
+    <h2 class="with-num"><span class="step-num">1</span>商圏調査PDFをアップロード</h2>
+    <div class="section-sub">500m〜3000m商圏・人流・物件情報が含まれた商圏調査レポート</div>
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text">タップ または ドラッグ&ドロップ</div>
+      <div class="upload-hint">PDF形式（手動入力のみでもOK）</div>
+    </div>
+    <input type="file" id="pdfInput" accept="application/pdf">
+    <div class="pdf-status" id="pdfStatus"></div>
+  </div>
+
+  <!-- ============ STEP 2: Input ============ -->
+  <div class="section">
+    <h2 class="with-num"><span class="step-num">2</span>物件情報を入力</h2>
+    <div class="section-sub">PDF抽出された項目は自動入力。残りは手入力。</div>
+    <div class="form-grid">
+      <div class="field full">
+        <label>物件名</label>
+        <input type="text" id="fName" placeholder="例：月島仲通り角地">
+      </div>
+      <div class="field full">
+        <label>登録者（任意）</label>
+        <input type="text" id="fRegistrant" placeholder="例：西村" maxlength="20">
+      </div>
+      <div class="field full">
+        <label>住所（Google自動取得に使用）</label>
+        <div class="autocomplete-wrap">
+          <input type="text" id="fAddress" placeholder="例：東京都江東区門前仲町2-2-2" autocomplete="off">
+          <div class="autocomplete-dropdown" id="addressDropdown"></div>
+        </div>
+      </div>
+      <div class="section-label">🏢 物件スペック</div>
+      <div class="field"><label>坪数(坪)</label><input type="number" id="fTsubo" step="0.1" placeholder="26"></div>
+      <div class="field"><label>席数</label><input type="number" id="fSeats" placeholder="坪×1.5で推定"></div>
+      <div class="field"><label>階数</label>
+        <select id="fFloor"><option value="1">1階路面</option><option value="2">2階以上</option><option value="-1">地下階</option></select>
+      </div>
+      <div class="field"><label>月額賃料(円)</label><input type="number" id="fRent" placeholder="650000"></div>
+      <div class="section-label">👥 商圏データ</div>
+      <div class="field"><label>500m総人口</label><input type="number" id="fPop500"></div>
+      <div class="field"><label>500m(20-49歳)</label><input type="number" id="fTarget2049"><div class="hint">未入力時は500m人口×44%で推定</div></div>
+      <div class="field"><label>1000m総人口</label><input type="number" id="fPop1000"></div>
+      <div class="field"><label>2000m総人口</label><input type="number" id="fPop2000"></div>
+      <div class="field"><label>月次通行量</label><input type="number" id="fPedestrian"></div>
+      <div class="field"><label>駅乗降/日</label><input type="number" id="fStationUsers"></div>
+      <div class="section-label">🎯 付加情報</div>
+      <div class="field full">
+        <label>半径100m以内の同業態競合数</label>
+        <div class="competitor-fetch">
+          <input type="number" id="fCompetitors" placeholder="6">
+          <button class="btn-sm" id="fetchCompBtn">🌐 Googleで自動取得</button>
+        </div>
+        <div class="hint">住所欄を入力してボタンを押すと自動取得。見つからない場合は Google Maps で目視カウントして手動入力してください。</div>
+      </div>
+      <div class="field"><label>検索需要(月間)</label><input type="number" id="fSearchDemand" value="5000"></div>
+      <div class="field"><label>採用難易度</label>
+        <select id="fHire"><option value="A">A</option><option value="B">B</option><option value="C" selected>C</option><option value="D">D</option><option value="E">E</option></select>
+      </div>
+      <div class="field"><label>インバウンド比率</label>
+        <select id="fInbound"><option value="0">0%</option><option value="0.05" selected>5%</option><option value="0.1">10%</option><option value="0.2">20%</option><option value="0.3">30%</option><option value="0.4">40%</option><option value="0.5">50%+</option></select>
+        <div class="hint">v3.0からスコアには加点せず、リスク解釈にのみ使用</div>
+      </div>
+      <div class="field"><label>業態</label>
+        <select id="fBiz"><option value="どてっぱん" selected>どてっぱん</option><option value="居酒屋">居酒屋</option><option value="ラーメン">ラーメン</option><option value="カフェ">カフェ</option><option value="焼肉">焼肉</option></select>
+      </div>
+    </div>
+    <button class="btn" id="calcBtn">🎯 スコアを算出する</button>
+  </div>
+
+  <!-- ============ STEP 3: Results ============ -->
+  <div class="results" id="results">
+    <div class="section">
+      <h2>🎯 評価結果</h2>
+      <div class="score-hero">
+        <div class="score-label">総合スコア（偏差値）</div>
+        <div class="score-number" id="totalScore">—</div>
+        <div class="score-rank-badge" id="totalRank">—</div>
+        <div class="score-hint" id="scoreHint">既存12店舗の平均=50</div>
+        <div class="ebitda-projection" id="ebitdaProjection">
+          期待業績レンジ（類似店舗の2026年5-6月実績から推定 / LOOCV検証 平均誤差±3.2pt）
+          <span class="ebitda-projection-value" id="ebitdaProjValue">—</span>
+        </div>
+      </div>
+      <div class="axis-grid" id="axisGrid"></div>
+      <div class="alert-list" id="alertList"></div>
+      <div class="interp" id="interpText"></div>
+    </div>
+  </div>
+
+  <!-- ============ 履歴ボタン・モーダル ============ -->
+  <button class="history-fab" id="historyFab" title="評価履歴を見る">
+    📚<span class="fab-badge" id="fabBadge" style="display:none">0</span>
+  </button>
+  
+  <div class="modal-backdrop" id="historyModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📚 評価履歴</h3>
+        <div class="modal-actions">
+          <button class="btn-mini" id="exportCsvBtn" title="CSV出力">📥 CSV</button>
+          <button class="modal-close" id="modalCloseBtn">×</button>
+        </div>
+      </div>
+      <div class="modal-body" id="historyBody">
+        <div class="modal-empty">履歴を読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>© 株式会社うまプロ｜事業開発本部 | v3.0 | 基準: 全12店舗 2026年5-6月実績（税抜統一・ロイヤリティ5%公平化・重み自動較正・Google Places分類・口コミ加重）| 履歴サーバー共有</footer>
+</div>
+
+<script>
+// PDF.js loader
+let pdfjsLib = null;
+async function loadPdfJs(){
+  if(pdfjsLib) return pdfjsLib;
+  pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs';
+  return pdfjsLib;
+}
+
+// ============ Baseline (v3.0) ============
+// 実績: 税抜統一
+//   revenue = 運営委託・直営8店: 2026年5-6月POS実績平均(税抜) / 通常FC4店: 2026年5月実績を税込÷1.10で税抜換算
+//   ebitda  = 2026年5月PL利益率をロイヤリティ5%統一で公平化した比率(運営委託は売上5%を利益に加算して算出済み)
+//   profit  = revenue × ebitda (起動時に計算)
+// ※ 旧版(〜v2.7.2)の売上・利益は税込データでした。v3.0で税抜に統一。
+//
+// 競合分類:
+//   compDirect = もんじゃ・鉄板・お好み焼き (-3点/軒)
+//   compSynergy = 居酒屋・バル・焼肉・韓国料理 (+2点/軒, 最大+30)
+//   compNeutral = ラーメン・ファストフード・中華・寿司等 (-1点/軒)
+// 初期値は地域特性からの推定値。「🔄 再分析」ボタンでGoogle実データに更新可能
+const BASELINE = [
+  { id:"S01", name:"札幌すすきの店", station:"すすきの", address:"北海道札幌市中央区南5条西3丁目3-4",
+    pop500:4503, target2049:1882, pop1000:34608, pop2000:156047, ped:329545, stationUsers:32832,
+    tsubo:50, seats:76, floor:-1, rent:750000,
+    revenue:5930735, ebitda:0.17367, franchise_type:"consigned", inbound:0.20,
+    comp:3, compDirect:0, compSynergy:25, compNeutral:8, search:31280, hire:"B", category:"歓楽街" },
+  { id:"S02", name:"刈谷駅前店", station:"刈谷", address:"愛知県刈谷市相生町2丁目31-31",
+    pop500:3188, target2049:1247, pop1000:12302, pop2000:54998, ped:78579, stationUsers:79660,
+    tsubo:60, seats:86, floor:1, rent:500000,
+    revenue:6387627, ebitda:0.19351, franchise_type:"normal", inbound:0.00,
+    comp:2, compDirect:0, compSynergy:5, compNeutral:2, search:4380, hire:"B", category:"地方ターミナル" },
+  { id:"S03", name:"月島本店", station:"月島", address:"東京都中央区月島3丁目9-9",
+    pop500:17958, target2049:8325, pop1000:74888, pop2000:185825, ped:147896, stationUsers:132744,
+    tsubo:56, seats:88, floor:1, rent:1500000,
+    revenue:5443494, ebitda:-0.00421, franchise_type:"consigned", inbound:0.20,
+    comp:18, compDirect:15, compSynergy:2, compNeutral:3, search:15600, hire:"C", category:"もんじゃ激戦区" },
+  { id:"S04", name:"京都木屋町店", station:"祇園四条", address:"京都府京都市中京区下樵木町196",
+    pop500:3805, target2049:1257, pop1000:32359, pop2000:124402, ped:125400, stationUsers:104891,
+    tsubo:21, seats:38, floor:1, rent:750000,
+    revenue:8575236, ebitda:0.21126, franchise_type:"consigned", inbound:0.35,
+    comp:4, compDirect:0, compSynergy:12, compNeutral:6, search:10580, hire:"D", category:"観光繁華街" },
+  { id:"S05", name:"門前仲町店", station:"門前仲町", address:"東京都江東区門前仲町2-2-2",
+    pop500:13682, target2049:6332, pop1000:59772, pop2000:263437, ped:102094, stationUsers:177594,
+    tsubo:26, seats:42, floor:1, rent:650000,
+    revenue:4205029, ebitda:0.13853, franchise_type:"consigned", inbound:0.05,
+    comp:6, compDirect:1, compSynergy:6, compNeutral:4, search:8000, hire:"C", category:"下町中都心" },
+  { id:"S06", name:"日吉駅前店", station:"日吉", address:"神奈川県横浜市港北区日吉2-2-11",
+    pop500:9167, target2049:4369, pop1000:57694, pop2000:207323, ped:269286, stationUsers:271898,
+    tsubo:40, seats:82, floor:1, rent:700000,
+    revenue:4396765, ebitda:0.11515, franchise_type:"consigned", inbound:0.03,
+    comp:4, compDirect:0, compSynergy:4, compNeutral:4, search:6720, hire:"B", category:"大学街・住宅" },
+  { id:"S07", name:"石山駅前店", station:"京阪石山", address:"滋賀県大津市粟津町8-5",
+    pop500:4582, target2049:1743, pop1000:14510, pop2000:59453, ped:168422, stationUsers:47727,
+    tsubo:66, seats:88, floor:1, rent:590000,
+    revenue:4395344, ebitda:0.14164, franchise_type:"consigned", inbound:0.05,
+    comp:1, compDirect:0, compSynergy:2, compNeutral:2, search:2220, hire:"C", category:"地方中核市" },
+  { id:"S08", name:"前橋店", station:"中央前橋", address:"群馬県前橋市千代田町2丁目7-20",
+    pop500:2814, target2049:714, pop1000:12466, pop2000:50271, ped:65383, stationUsers:1386,
+    tsubo:20, seats:30, floor:2, rent:200000,
+    revenue:1909138, ebitda:0.12814, franchise_type:"direct", inbound:0.02,
+    comp:0, compDirect:0, compSynergy:2, compNeutral:1, search:1680, hire:"D", category:"地方県庁(直営)" },
+  { id:"S09", name:"なんば北心斎橋駅前店", station:"四ツ橋", address:"大阪府大阪市中央区西心斎橋1丁目15-12",
+    pop500:11251, target2049:6074, pop1000:44546, pop2000:221303, ped:122728, stationUsers:31482,
+    tsubo:35, seats:44, floor:1, rent:600000,
+    revenue:5158400, ebitda:0.16971, franchise_type:"normal", inbound:0.30,
+    comp:2, compDirect:1, compSynergy:18, compNeutral:6, search:67320, hire:"B", category:"超都心" },
+  { id:"S10", name:"松戸東口店", station:"松戸", address:"千葉県松戸市松戸1236",
+    pop500:5757, target2049:2557, pop1000:39305, pop2000:114063, ped:630408, stationUsers:269692,
+    tsubo:33, seats:50, floor:2, rent:600000,
+    revenue:5178717, ebitda:0.16795, franchise_type:"consigned", inbound:0.02,
+    comp:2, compDirect:0, compSynergy:8, compNeutral:4, search:10440, hire:"B", category:"郊外ハブ" },
+  { id:"S11", name:"登戸店", station:"登戸", address:"神奈川県川崎市多摩区登戸2583-4",
+    pop500:24202, target2049:12990, pop1000:45958, pop2000:142209, ped:248013, stationUsers:304392,
+    tsubo:20, seats:30, floor:1, rent:400000,
+    revenue:4065830, ebitda:0.15705, franchise_type:"normal", inbound:0.02,
+    comp:2, compDirect:0, compSynergy:6, compNeutral:3, search:3980, hire:"C", category:"郊外住宅" },
+  { id:"S12", name:"向ヶ丘遊園店", station:"向ヶ丘遊園", address:"神奈川県川崎市登戸1831",
+    pop500:24202, target2049:12990, pop1000:41274, pop2000:136801, ped:104733, stationUsers:54816,
+    tsubo:29, seats:48, floor:2, rent:500000,
+    revenue:6170905, ebitda:0.18850, franchise_type:"normal", inbound:0.02,
+    comp:1, compDirect:0, compSynergy:5, compNeutral:2, search:3140, hire:"C", category:"郊外住宅" },
+];
+
+// 利益額 = 税抜売上 × 公平化利益率
+BASELINE.forEach(s => {
+  s.profit = Math.round(s.revenue * s.ebitda);
+});
+
+// 事前重み（業界知見ベース。どてっぱんは実績較正とブレンドされる）
+const WEIGHTS = {
+  "どてっぱん": { pop:30, comp:25, rent:20, search:15, hire:10 },
+  "居酒屋":     { pop:30, comp:25, rent:20, search:15, hire:10 },
+  "ラーメン":   { pop:25, comp:30, rent:20, search:15, hire:10 },
+  "カフェ":     { pop:35, comp:20, rent:20, search:15, hire:10 },
+  "焼肉":       { pop:30, comp:20, rent:25, search:15, hire:10 },
+};
+
+function mean(a){ return a.reduce((x,y)=>x+y,0)/a.length }
+function stdev(a){ const m=mean(a); return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/a.length) }
+function deviation(v, arr, higherIsBetter=true){
+  const m=mean(arr), s=stdev(arr);
+  if(s===0) return 50;
+  const z = (v - m) / s;
+  return 50 + (higherIsBetter ? z : -z) * 10;
+}
+function clamp(v, lo=0, hi=100){ return Math.max(lo, Math.min(hi, v)) }
+
+// ============ v3.0 自動較正エンジン ============
+// Spearman順位相関 (同順位は平均順位)
+function rankArr(arr){
+  const idx = arr.map((v,i)=>[v,i]).sort((a,b)=>a[0]-b[0]);
+  const r = new Array(arr.length);
+  let i = 0;
+  while(i < idx.length){
+    let j = i;
+    while(j+1 < idx.length && idx[j+1][0] === idx[i][0]) j++;
+    const avg = (i+j)/2 + 1;
+    for(let k=i; k<=j; k++) r[idx[k][1]] = avg;
+    i = j+1;
+  }
+  return r;
+}
+function spearman(a, b){
+  const ra = rankArr(a), rb = rankArr(b);
+  const ma = mean(ra), mb = mean(rb);
+  let num=0, da=0, db=0;
+  for(let i=0;i<ra.length;i++){
+    num += (ra[i]-ma)*(rb[i]-mb);
+    da += (ra[i]-ma)**2; db += (rb[i]-mb)**2;
+  }
+  return (da>0 && db>0) ? num/Math.sqrt(da*db) : 0;
+}
+
+const AXIS_KEYS = ["pop","comp","rent","search","hire"];
+let CALIBRATED_W = null;   // どてっぱん用の較正済み重み
+
+// 各軸スコアと実利益率の相関から重みを較正し、事前重みとブレンド
+// W = (1-α)×事前重み + α×データ較正重み, α = n/(n+24)
+function calibrateWeights(scoredList){
+  const prior = WEIGHTS["どてっぱん"];
+  const eb = scoredList.map(s => s.ebitda);
+  const wd = {};
+  let tot = 0;
+  AXIS_KEYS.forEach(k => {
+    const rho = spearman(scoredList.map(s => s.scores[k]), eb);
+    wd[k] = Math.max(rho, 0);   // 逆相関の軸はデータ重みゼロ
+    tot += wd[k];
+  });
+  const n = scoredList.length;
+  const alpha = n / (n + 24);
+  const W = {};
+  AXIS_KEYS.forEach(k => {
+    const dataW = tot > 0 ? wd[k]/tot*100 : prior[k];
+    W[k] = (1-alpha)*prior[k] + alpha*dataW;
+  });
+  return W;
+}
+
+function renderCalibInfo(){
+  const el = document.getElementById('calibWeights');
+  if(!el || !CALIBRATED_W) return;
+  const labels = {pop:"需要効率",comp:"競合",rent:"家賃",search:"検索",hire:"採用"};
+  el.textContent = "｜現在の較正重み: " + AXIS_KEYS.map(k => `${labels[k]}${CALIBRATED_W[k].toFixed(0)}%`).join(" / ");
+}
+
+// スコア計算（input形式 or baseline store形式 どちらでも受けられる）
+function computeScores(inp){
+  const pop500 = inp.pop500 || 0;
+  const target2049 = inp.target2049 || 0;
+  const ped = inp.pedestrian || inp.ped || 0;
+  const tsubo = inp.tsubo;
+  const seats = inp.seats || Math.round(tsubo*1.5);
+  const floor = inp.floor;
+  const rent = inp.rent;
+  const search = inp.search || 0;
+  const hire = inp.hire || "C";
+  
+  // v3.0 需要効率軸: 20-49歳人口 ÷ 賃料 の偏差値
+  // 人口絶対数は「人口多い＝家賃・競合も多い」交絡で利益と逆相関のため廃止(LOOCV検証済)。
+  // 逆相関が残る場合も較正エンジンが自動でデータ重みをゼロにするため安全。
+  const t2049 = target2049 > 0 ? target2049 : pop500 * 0.44;  // 未入力時は500m人口×44%で推定
+  const effVal = t2049 / (rent || 1) * 1e5;
+  const popDev = deviation(effVal, BASELINE.map(s => s.target2049 / s.rent * 1e5));
+  
+  // 競合スコア: 50 + min(共食×2, 30) - 直撃×3 - 中立×1
+  // 新物件評価時は加重値(compXxxWeighted)、BASELINE は生の件数を使用
+  const compDirect = inp.compDirectWeighted ?? inp.compDirect ?? 0;
+  const compSynergy = inp.compSynergyWeighted ?? inp.compSynergy ?? 0;
+  const compNeutral = inp.compNeutralWeighted ?? inp.compNeutral ?? (inp.comp || 0);
+  const compDev = 50 + Math.min(compSynergy * 2, 30) - compDirect * 3 - compNeutral * 1;
+  
+  const tsuboPriceDev = deviation(rent/tsubo, BASELINE.map(s=>s.rent/s.tsubo), false);
+  const seatRentDev = deviation(rent/seats, BASELINE.map(s=>s.rent/s.seats), false);
+  let rentDev = 0.5*tsuboPriceDev + 0.5*seatRentDev;
+  if(floor === 1) rentDev += 4;
+  if(floor === -1) rentDev -= 3;
+  if(floor === 2) rentDev -= 2;
+  const searchDev = deviation(search, BASELINE.map(s=>s.search));
+  const hireMap = {"A":70,"B":60,"C":50,"D":40,"E":30};
+  const hireDev = hireMap[hire] || 50;
+  // v3.0: インバウンドブーストは廃止(実績相関ゼロ ρ=+0.01)。リスク解釈のみに使用。
+  
+  return {
+    pop:    clamp(popDev, 20, 80),
+    comp:   clamp(compDev, 20, 80),
+    rent:   clamp(rentDev, 20, 80),
+    search: clamp(searchDev, 20, 80),
+    hire:   clamp(hireDev, 20, 80),
+  };
+}
+
+function computeTotal(scores, biz){
+  const b = biz || "どてっぱん";
+  // どてっぱんは較正済み重み、他業態は事前重みプリセット(実績データが貯まれば同じ仕組みで較正可)
+  const w = (b === "どてっぱん" && CALIBRATED_W) ? CALIBRATED_W : WEIGHTS[b];
+  return (scores.pop*w.pop + scores.comp*w.comp + scores.rent*w.rent + scores.search*w.search + scores.hire*w.hire) / 100;
+}
+
+function deriveRank(total){
+  if(total >= 65) return "S";
+  if(total >= 58) return "A";
+  if(total >= 52) return "B";
+  if(total >= 45) return "C";
+  return "D";
+}
+
+// ============ 既存店ランキング計算 & 描画 ============
+let BASELINE_RESULTS = null;
+let newPropertyResult = null; // 新物件評価結果（評価時に設定）
+
+function computeBaselineResults(){
+  // 1) 各軸スコア → 2) 重み較正 → 3) 総合スコア の二段階
+  const scored = BASELINE.map(s => ({ ...s, scores: computeScores(s) }));
+  CALIBRATED_W = calibrateWeights(scored);
+  renderCalibInfo();
+  return scored.map(s => {
+    const total = computeTotal(s.scores, "どてっぱん");
+    return { ...s, total, rank: deriveRank(total), isNew: false };
+  });
+}
+
+BASELINE_RESULTS = computeBaselineResults();
+
+// ========== タブ切替 ==========
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+    document.getElementById('view-' + view).classList.add('active');
+    if(view === 'scatter') { setTimeout(() => scatterChart && scatterChart.resize(), 50); }
+  };
+});
+
+// ========== 散布図 ==========
+let scatterChart = null;
+let currentAxis = 'profit'; // 'profit' (営業利益額・万円) or 'ebitda' (営業利益率)
+
+document.querySelectorAll('.axis-tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.axis-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentAxis = btn.dataset.axis;
+    renderScatter();
+    updateScatterLegend();
+  };
+});
+
+function updateScatterLegend(){
+  const legend = document.getElementById('scatterLegend');
+  if(!legend) return;
+  const yLabel = currentAxis === 'profit' ? '月次営業利益額（万円）' : '営業利益率（%）';
+  legend.innerHTML = `
+    縦軸 = ${yLabel} / 横軸 = 物件スコア（偏差値50 = 12店舗平均）<br>
+    <span style="color:var(--good)">●</span> 黒字店 &nbsp;
+    <span style="color:var(--warn)">●</span> 赤字店 &nbsp;
+    <span style="color:var(--orange)">★</span> 新物件（評価後に表示）
+    <br><span style="font-size:10px;color:#999">※ 2026年5-6月実績（税抜・通常FC4店は5月税抜換算）。ロイヤリティ5%統一公平化後の店舗側営業利益</span>
+  `;
+}
+
+function getYValue(store, axis){
+  if(axis === 'profit') return (store.profit || 0) / 10000; // 円→万円
+  return (store.ebitda || 0) * 100;                          // 小数→%
+}
+
+// 類似店舗から新物件の月商を推定
+function estimateRevenueFromSimilar(result){
+  if(!result.similar || !result.similar.length) return 5000000;
+  const revs = result.similar.map(s => s.revenue || 5000000).filter(v => v);
+  if(!revs.length) return 5000000;
+  return revs.reduce((a,b) => a+b, 0) / revs.length;
+}
+
+function renderScatter(){
+  const ctx = document.getElementById('scatterChart').getContext('2d');
+  if(scatterChart) scatterChart.destroy();
+  
+  const existing = BASELINE_RESULTS.map(r => ({
+    x: r.total,
+    y: getYValue(r, currentAxis),
+    name: r.name,
+    category: r.category,
+    revenue: r.revenue,
+    profit: r.profit,
+    ebitda: r.ebitda
+  }));
+  const positives = existing.filter(d => d.y >= 0);
+  const negatives = existing.filter(d => d.y < 0);
+  
+  const datasets = [
+    {
+      label: '黒字店',
+      data: positives,
+      backgroundColor: 'rgba(46, 125, 50, 0.6)',
+      borderColor: '#2E7D32',
+      borderWidth: 2,
+      pointRadius: 8,
+      pointHoverRadius: 11
+    },
+    {
+      label: '赤字店',
+      data: negatives,
+      backgroundColor: 'rgba(198, 40, 40, 0.6)',
+      borderColor: '#C62828',
+      borderWidth: 2,
+      pointRadius: 8,
+      pointHoverRadius: 11
+    }
+  ];
+  
+  // 新物件があれば追加
+  if(newPropertyResult){
+    let yMin, yMax, yMean;
+    if(currentAxis === 'profit'){
+      const estRevenue = estimateRevenueFromSimilar(newPropertyResult);
+      yMin = (estRevenue * newPropertyResult.ebitdaProjection.min) / 10000;
+      yMax = (estRevenue * newPropertyResult.ebitdaProjection.max) / 10000;
+      yMean = (estRevenue * newPropertyResult.ebitdaProjection.mean) / 10000;
+    } else {
+      yMin = newPropertyResult.ebitdaProjection.min * 100;
+      yMax = newPropertyResult.ebitdaProjection.max * 100;
+      yMean = newPropertyResult.ebitdaProjection.mean * 100;
+    }
+    datasets.push({
+      label: '★ ' + newPropertyResult.name + '（期待レンジ）',
+      data: [
+        { x: newPropertyResult.total, y: yMin,  name: newPropertyResult.name + ' (下限)', category: '新物件' },
+        { x: newPropertyResult.total, y: yMean, name: newPropertyResult.name + ' (中央)', category: '新物件' },
+        { x: newPropertyResult.total, y: yMax,  name: newPropertyResult.name + ' (上限)', category: '新物件' }
+      ],
+      backgroundColor: 'rgba(224, 123, 57, 0.8)',
+      borderColor: '#E07B39',
+      borderWidth: 3,
+      pointRadius: 10,
+      pointHoverRadius: 14,
+      pointStyle: 'star'
+    });
+  }
+  
+  // Y軸スケール計算（データに応じて調整）
+  const allY = existing.map(d => d.y);
+  const yMinData = Math.min.apply(null, allY);
+  const yMaxData = Math.max.apply(null, allY);
+  const yPad = (yMaxData - yMinData) * 0.15 || 10;
+  const yAxisMin = Math.floor(yMinData - yPad);
+  const yAxisMax = Math.ceil(yMaxData + yPad);
+  const yAxisTitle = currentAxis === 'profit' ? '月次営業利益額（万円）' : '営業利益率 (%)';
+  
+  scatterChart = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: {
+          title: { display: true, text: '総合スコア（偏差値）', font: { size: 12, weight: 'bold' } },
+          min: 30, max: 72,
+          grid: { color: '#EEE' }
+        },
+        y: {
+          title: { display: true, text: yAxisTitle, font: { size: 12, weight: 'bold' } },
+          min: yAxisMin, max: yAxisMax,
+          grid: {
+            color: (ctx) => ctx.tick.value === 0 ? '#999' : '#EEE',
+            lineWidth: (ctx) => ctx.tick.value === 0 ? 2 : 1
+          },
+          ticks: {
+            callback: function(value) {
+              if(currentAxis === 'profit') return value.toLocaleString() + '万';
+              return value.toFixed(0) + '%';
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const d = ctx.raw;
+              const lines = [d.name + ' (' + d.category + ')', 'スコア: ' + d.x.toFixed(1)];
+              if(d.revenue) lines.push('月商: ¥' + d.revenue.toLocaleString());
+              if(d.profit !== undefined && d.profit !== null) {
+                const sign = d.profit >= 0 ? '+' : '-';
+                lines.push('営業利益: ' + sign + '¥' + Math.abs(d.profit).toLocaleString());
+              }
+              if(d.ebitda !== undefined && d.ebitda !== null) {
+                const sign = d.ebitda >= 0 ? '+' : '';
+                lines.push('利益率: ' + sign + (d.ebitda * 100).toFixed(1) + '%');
+              }
+              if(d.category === '新物件') {
+                const yStr = currentAxis === 'profit' 
+                  ? d.y.toFixed(0) + '万円' 
+                  : d.y.toFixed(1) + '%';
+                lines.push((currentAxis === 'profit' ? '推定月利益' : '推定利益率') + ': ' + yStr);
+              }
+              return lines;
+            }
+          }
+        },
+        annotation: false
+      }
+    },
+    plugins: [{
+      id: 'labelPlugin',
+      afterDatasetsDraw: (chart) => {
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.font = '10px "Hiragino Sans", sans-serif';
+        ctx.fillStyle = '#333';
+        chart.data.datasets.forEach((dataset, i) => {
+          if(dataset.label.startsWith('★')) return;
+          const meta = chart.getDatasetMeta(i);
+          meta.data.forEach((point, j) => {
+            const d = dataset.data[j];
+            let label = d.name.replace(/店$/, '').replace(/駅前/, '').replace(/なんば北心斎橋/, 'なんば');
+            ctx.fillText(label, point.x + 10, point.y + 3);
+          });
+        });
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// ========== ランキング表 ==========
+let sortKey = 'total', sortDir = 'desc';
+
+function renderTable(){
+  const rows = [...BASELINE_RESULTS];
+  if(newPropertyResult){
+    rows.push({
+      name: newPropertyResult.name,
+      category: '(新物件)',
+      scores: newPropertyResult.scores,
+      total: newPropertyResult.total,
+      rank: newPropertyResult.rank,
+      ebitda: null,
+      isNew: true
+    });
+  }
+  
+  // ソート
+  rows.sort((a, b) => {
+    let va, vb;
+    if(sortKey === 'total') { va = a.total; vb = b.total; }
+    else if(sortKey === 'ebitda') { va = a.ebitda ?? -999; vb = b.ebitda ?? -999; }
+    else if(sortKey === 'revenue') { va = a.revenue ?? -999; vb = b.revenue ?? -999; }
+    else if(sortKey === 'profit') { va = a.profit ?? -99999999; vb = b.profit ?? -99999999; }
+    else if(sortKey === 'name') { va = a.name; vb = b.name; }
+    else if(sortKey === 'rank') { va = a.rank; vb = b.rank; }
+    else { va = a.scores[sortKey]; vb = b.scores[sortKey]; }
+    if(va < vb) return sortDir === 'asc' ? -1 : 1;
+    if(va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  
+  // 営業利益額順位とスコア順位を計算（既存店のみ）
+  const profitSorted = [...BASELINE_RESULTS].sort((a,b) => (b.profit||0) - (a.profit||0));
+  const totalSorted = [...BASELINE_RESULTS].sort((a,b) => b.total - a.total);
+  
+  const tbody = document.getElementById('rankTableBody');
+  tbody.innerHTML = rows.map((r, i) => {
+    const eb = (r.ebitda === null || r.ebitda === undefined) ? '— <small style="color:#999">(推定)</small>'
+      : (r.ebitda >= 0 ? '<span class="ebitda-plus">+' + (r.ebitda*100).toFixed(1) + '%</span>'
+                       : '<span class="ebitda-minus">' + (r.ebitda*100).toFixed(1) + '%</span>');
+    
+    const revStr = r.revenue ? '¥' + (r.revenue/10000).toFixed(0) + '万' : '—';
+    const profStr = (r.profit === null || r.profit === undefined) ? '— <small style="color:#999">(推定)</small>'
+      : (r.profit >= 0 
+          ? '<span class="ebitda-plus">+¥' + (r.profit/10000).toFixed(0) + '万</span>'
+          : '<span class="ebitda-minus">¥' + (r.profit/10000).toFixed(0) + '万</span>');
+    
+    const bar = (v) => {
+      const w = Math.min(100, v*1.3);
+      const color = v>=55?'#2E7D32' : v<45?'#C62828':'#ED6C02';
+      return '<span class="score-bar"><span class="score-bar-fill" style="width:' + w + '%;background:' + color + '"></span></span>' + v.toFixed(0);
+    };
+    
+    // 乖離計算（営業利益額順位 vs スコア順位）
+    let gap = '';
+    if(!r.isNew){
+      const profitRank = profitSorted.findIndex(s => s.id === r.id) + 1;
+      const totalRank = totalSorted.findIndex(s => s.id === r.id) + 1;
+      const diff = profitRank - totalRank;
+      if(diff > 2) gap = '<span class="gap-indicator gap-down">スコア過大(-' + diff + ')</span>';
+      else if(diff < -2) gap = '<span class="gap-indicator gap-up">実績がスコア超え(+' + Math.abs(diff) + ')</span>';
+      else gap = '<span class="gap-indicator gap-flat">±' + Math.abs(diff) + '</span>';
+    } else {
+      gap = '<small style="color:#E07B39;font-weight:bold">評価中</small>';
+    }
+    
+    // 競合列: スコアバー + 内訳表示（直撃/共食/中立）
+    let compCell;
+    if(r.isNew){
+      compCell = bar(r.scores.comp);
+    } else {
+      const d = r.compDirect || 0, sy = r.compSynergy || 0, n = r.compNeutral || 0;
+      const breakdown = `🍳${d} 🍺${sy} 🍜${n}`;
+      const tooltip = `直撃: ${d}店 / 共食: ${sy}店 / 中立: ${n}店`;
+      compCell = `${bar(r.scores.comp)}<br><small style="color:#888;font-size:10px" title="${tooltip}">${breakdown}</small>`;
+    }
+    
+    return `<tr class="${r.isNew?'new-property':''}">
+      <td><strong>${i+1}</strong></td>
+      <td>${r.isNew?'★ ':''}${r.name}<br><small class="cat-tag">${r.category}</small></td>
+      <td class="num"><strong>${r.total.toFixed(1)}</strong></td>
+      <td><span class="rank-cell rank-${r.rank}">${r.rank}</span></td>
+      <td class="num">${bar(r.scores.pop)}</td>
+      <td class="num">${compCell}</td>
+      <td class="num">${bar(r.scores.rent)}</td>
+      <td class="num">${bar(r.scores.search)}</td>
+      <td class="num">${bar(r.scores.hire)}</td>
+      <td class="num">${revStr}</td>
+      <td class="num">${profStr}</td>
+      <td class="num">${eb}</td>
+      <td>${gap}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ソートヘッダクリック
+document.querySelectorAll('#rankTable th[data-sort]').forEach(th => {
+  th.onclick = () => {
+    const key = th.dataset.sort;
+    if(sortKey === key) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortKey = key;
+      sortDir = (key === 'name') ? 'asc' : 'desc';
+    }
+    document.querySelectorAll('#rankTable th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+    th.classList.add('sort-' + sortDir);
+    renderTable();
+  };
+});
+
+// 初期描画
+renderScatter();
+updateScatterLegend();
+renderTable();
+document.querySelector('#rankTable th[data-sort="total"]').classList.add('sort-desc');
+
+// 印刷ダイアログを開く直前にChart.jsを再描画（印刷時にcanvasが空白になるのを防ぐ）
+window.addEventListener('beforeprint', () => {
+  if(scatterChart) scatterChart.resize();
+});
+window.addEventListener('afterprint', () => {
+  if(scatterChart) scatterChart.resize();
+});
+
+// ============ PDF抽出 ============
+async function extractPdf(file){
+  const pdfjs = await loadPdfJs();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({data: buf}).promise;
+  let allText = "";
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    allText += tc.items.map(t=>t.str).join(" ") + "\n";
+  }
+  return parsePdfText(allText);
+}
+
+function parsePdfText(text){
+  const result = {rawText: text};
+  let m = text.match(/^\s*([^\s]+(?:店|駅前店))/m);
+  if(!m) m = text.match(/([^\s]+店)\s+物件所在地/);
+  if(m) result.name = m[1];
+  m = text.match(/住所\s+([^\n]+?)\s+最寄駅/);
+  if(m) result.address = m[1].trim();
+  m = text.match(/坪数\s*([\d.]+)\s*坪/);
+  if(m) result.tsubo = parseFloat(m[1]);
+  m = text.match(/物件階数\s*([B地下\d]+)/);
+  if(m){
+    const f = m[1];
+    if(f.match(/B|地下/)) result.floor = -1;
+    else if(f.match(/^\d/)) { const n = parseInt(f); result.floor = n >= 2 ? 2 : 1; }
+  }
+  m = text.match(/賃料[\s\S]{0,40}?([\d.]+)\s*万円/);
+  if(m) result.rent = Math.round(parseFloat(m[1]) * 10000);
+  m = text.match(/乗降客数\s*([\d,]+)\s*人/);
+  if(m) result.stationUsers = parseInt(m[1].replace(/,/g,''));
+  m = text.match(/最寄駅\s+([^\s（(]+)\s*[（(]\s*乗降客数/);
+  if(m) result.station = m[1];
+  
+  const radii = [500, 1000, 2000, 3000];
+  radii.forEach(r => {
+    const re = new RegExp(`商圏情報\\s*[（(]\\s*${r}\\s*m\\s*[）)]([\\s\\S]*?)(?:商圏情報|人流データ|$)`);
+    const block = text.match(re);
+    if(block){
+      const b = block[1];
+      const pm = b.match(/総人口[\s\S]{0,30}?([\d,]+)\s*人/);
+      if(pm) result[`pop${r}`] = parseInt(pm[1].replace(/,/g,''));
+      if(r === 500){
+        const ages = ['20','25','30','35','40','45'];
+        let sum = 0, cnt = 0;
+        ages.forEach(a => {
+          const end = parseInt(a) + 4;
+          const re2 = new RegExp(`${a}\\s*[-–〜～]\\s*${end}\\s*歳\\s+([\\d,]+)\\s*人`);
+          const mm = b.match(re2);
+          if(mm){ sum += parseInt(mm[1].replace(/,/g,'')); cnt++; }
+        });
+        if(cnt >= 4) result.target2049 = sum;
+      }
+    }
+  });
+  
+  let pedMatch = text.match(/[（(]\s*推計\s*[）)]\s*([\d,]{4,})\s*人/);
+  if(!pedMatch) pedMatch = text.match(/通行者数[\s\S]{0,100}?([\d]{2,3},\d{3})\s*人/);
+  if(pedMatch) result.pedestrian = parseInt(pedMatch[1].replace(/,/g,''));
+  return result;
+}
+
+// ============ Google API 経由のジオコーディング ============
+// 住所を自動クリーニング
+function cleanAddress(raw){
+  let s = raw.trim();
+  s = s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  s = s.replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  s = s.replace(/[－―−ー]/g, '-');
+  s = s.replace(/〒?\d{3}-?\d{4}/g, '');
+  s = s.replace(/\s*[^\s0-9-]*(ビル|マンション|タワー|センター|プラザ|スクエア|ハイツ|コーポ|メゾン)[^\s]*/g, '');
+  s = s.replace(/\s*[BbＢｂ]?\d+[FfＦｆ階]/g, '');
+  s = s.replace(/\s*\d+号室?/g, '');
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+async function geocode(address){
+  const cleaned = cleanAddress(address);
+  const resp = await fetch('/api/places/geocode', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ address: cleaned })
+  });
+  
+  if(!resp.ok){
+    const err = await resp.json().catch(() => ({error: 'unknown'}));
+    const baseMsg = err.error || 'ジオコーディング失敗';
+    const reason = err.reason || '';
+    const hint = err.hint || '';
+    console.error('[Geocode failed]', {status: resp.status, reason, detail: err.detail, hint});
+    
+    if(reason === 'api_key_denied'){
+      const e = new Error('⚠ APIキーが拒否されました');
+      e.hint = hint;
+      throw e;
+    }
+    if(resp.status === 404 || reason === 'not_found'){
+      const e = new Error('住所が見つかりません');
+      e.hint = hint || '番地を追加するか建物名を除外してみてください';
+      throw e;
+    }
+    const e = new Error(baseMsg);
+    e.hint = hint;
+    throw e;
+  }
+  
+  const data = await resp.json();
+  return {
+    lat: data.lat,
+    lon: data.lng,
+    matched: data.formattedAddress,
+    usedQuery: cleaned,
+    degraded: false
+  };
+}
+
+// ============ 業態分類 (Google primaryType ベース) ============
+// 店舗を業態で分類: direct(直撃) / synergy(共食) / neutral(中立) / excluded(除外)
+function classifyEstablishment(place) {
+  const name = (place.name || '').toLowerCase();
+  const primaryType = (place.primaryType || '').toLowerCase();
+  const types = (place.types || []).map(t => t.toLowerCase());
+  const primaryTypeDisplay = (place.primaryTypeDisplayName || '').toLowerCase();
+  
+  const hasType = (t) => primaryType === t || types.includes(t);
+  const nameMatches = (regex) => regex.test(name) || regex.test(primaryTypeDisplay);
+  
+  // === 1. 除外: カフェ・コーヒー ===
+  if (hasType('cafe') || hasType('coffee_shop')) return 'excluded';
+  if (nameMatches(/カフェ|cafe|coffee|コーヒー|スタバ|starbucks|ドトール|タリーズ|エクセルシオール|ベローチェ/i)) return 'excluded';
+  
+  // === 2. 直撃: もんじゃ・鉄板焼き・お好み焼き ===
+  if (hasType('monja_restaurant') || hasType('teppanyaki_restaurant') || hasType('okonomiyaki_restaurant')) return 'direct';
+  if (nameMatches(/もんじゃ|monja|鉄板|teppan|お好み|okonomi/i)) return 'direct';
+  
+  // === 3. 共食: 居酒屋・バル・焼肉・韓国料理 ===
+  if (hasType('bar') || hasType('pub') || hasType('wine_bar')) return 'synergy';
+  if (hasType('barbecue_restaurant') || hasType('korean_restaurant')) return 'synergy';
+  if (nameMatches(/居酒屋|酒場|バル|bar|pub|焼肉|yakiniku|ホルモン|串焼|串揚|焼鳥|やきとり|鳥貴族|和民|白木屋|魚民|養老乃滝|はなの舞|金の蔵|土間土間|笑笑|庄や|韓国料理|サムギョプサル|チーズタッカルビ|冷麺|プルコギ/i)) return 'synergy';
+  
+  // === 4. 中立: ラーメン・ファストフード・中華・寿司・エスニック等 ===
+  if (hasType('fast_food_restaurant') || hasType('ramen_restaurant') || hasType('sushi_restaurant')) return 'neutral';
+  if (hasType('chinese_restaurant') || hasType('thai_restaurant') || hasType('vietnamese_restaurant')) return 'neutral';
+  if (hasType('italian_restaurant') || hasType('french_restaurant') || hasType('indian_restaurant')) return 'neutral';
+  if (hasType('mexican_restaurant') || hasType('hamburger_restaurant') || hasType('pizza_restaurant')) return 'neutral';
+  if (hasType('steak_house') || hasType('breakfast_restaurant') || hasType('brunch_restaurant')) return 'neutral';
+  if (nameMatches(/ラーメン|ramen|マクドナルド|mcdonald|kfc|吉野家|松屋|すき家|なか卯|サイゼ|ガスト|バーミヤン|中華|ファミレス|ロッテリア|モスバーガー|フレッシュネス|寿司|sushi|回転寿司|くら寿司|スシロー|はま寿司|タイ料理|ベトナム|インド|カレー|パスタ|ピザ/i)) return 'neutral';
+  
+  // === 5. その他のrestaurant/bar/food系 → 中立 ===
+  return 'neutral';
+}
+
+// 口コミ件数による競合強度の重み付け
+// レビュー500件超: 1.5倍 / 10件未満: 0.5倍 / それ以外: log10スケール
+function computeWeight(ratingCount){
+  if (!ratingCount || ratingCount < 1) return 1.0;
+  const w = Math.log10(ratingCount + 1) / Math.log10(100);
+  return Math.max(0.5, Math.min(1.5, w));
+}
+
+// 競合スコア計算: 50 + min(共食×2, 30) - 直撃×3 - 中立×1 (加重)
+function computeCompScore(counts) {
+  const synergyBoost = Math.min((counts.synergyWeighted || counts.synergy) * 2, 30);
+  const directPenalty = (counts.directWeighted || counts.direct) * 3;
+  const neutralPenalty = (counts.neutralWeighted || counts.neutral) * 1;
+  return 50 + synergyBoost - directPenalty - neutralPenalty;
+}
+
+// Google Places API 経由で近隣飲食店を取得・分類
+async function fetchCompetitors(lat, lon, radiusM=100, withDetails=true){
+  const resp = await fetch('/api/places/nearby', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ lat, lng: lon, radius: radiusM, withDetails })
+  });
+  if(!resp.ok){
+    const err = await resp.json().catch(() => ({error: 'unknown'}));
+    throw new Error(err.error || '競合検索に失敗しました');
+  }
+  const data = await resp.json();
+  const places = data.places || [];
+  
+  const establishments = places.map(p => ({
+    placeId: p.placeId,
+    name: p.name,
+    primaryType: p.primaryType,
+    primaryTypeDisplayName: p.primaryTypeDisplayName,
+    types: p.types,
+    rating: p.rating,
+    ratingCount: p.ratingCount || 0,
+    photos: p.photos || [],
+    priceLevel: p.priceLevel,
+    category: classifyEstablishment(p),
+    weight: computeWeight(p.ratingCount)
+  }));
+  
+  // カテゴリ別集計 (件数 + 加重件数)
+  const counts = { 
+    direct: 0, synergy: 0, neutral: 0, excluded: 0, total: establishments.length,
+    directWeighted: 0, synergyWeighted: 0, neutralWeighted: 0
+  };
+  establishments.forEach(e => {
+    counts[e.category]++;
+    if(e.category === 'direct')  counts.directWeighted  += e.weight;
+    if(e.category === 'synergy') counts.synergyWeighted += e.weight;
+    if(e.category === 'neutral') counts.neutralWeighted += e.weight;
+  });
+  // 小数点1桁に丸める
+  counts.directWeighted  = Math.round(counts.directWeighted * 10) / 10;
+  counts.synergyWeighted = Math.round(counts.synergyWeighted * 10) / 10;
+  counts.neutralWeighted = Math.round(counts.neutralWeighted * 10) / 10;
+  
+  return { establishments, counts };
+}
+
+document.getElementById('fetchCompBtn').onclick = async () => {
+  const address = document.getElementById('fAddress').value.trim();
+  const btn = document.getElementById('fetchCompBtn');
+  if(!address) { alert('住所を入力してください'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>取得中';
+  try{
+    // サジェストで既に placeId が選ばれている場合は Details から座標取得
+    let lat, lng;
+    if(window.selectedPlaceId){
+      const dResp = await fetch('/api/places/details', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ placeId: window.selectedPlaceId, fields: 'basic' })
+      });
+      if(dResp.ok){
+        const d = await dResp.json();
+        lat = d.lat; lng = d.lng;
+      }
+    }
+    // placeId が無ければ Geocode
+    if(lat === undefined || lng === undefined){
+      const g = await geocode(address);
+      lat = g.lat; lng = g.lon;
+    }
+    
+    const { establishments, counts } = await fetchCompetitors(lat, lng, 100, true);
+    
+    // 競合数 = 直撃+共食+中立(除外含まず)
+    document.getElementById('fCompetitors').value = counts.direct + counts.synergy + counts.neutral;
+    
+    window.lastCompClassification = counts;
+    window.lastCompEstablishments = establishments;
+    
+    const breakdown = `🍳${counts.direct}店/🍺${counts.synergy}店/🍜${counts.neutral}店`;
+    btn.innerHTML = '✅ ' + breakdown;
+    
+    showCompetitorBreakdown(establishments, counts);
+    
+    setTimeout(() => { btn.innerHTML = '🌐 Googleで自動取得'; btn.title = ''; }, 10000);
+  } catch(err){
+    console.error('Competitor fetch error:', err);
+    btn.innerHTML = '⚠ ' + (err.message || 'エラー');
+    const tooltip = (err.message || '') + (err.hint ? '\n\n【原因】\n' + err.hint : '\n手動で数字を入力してください。');
+    btn.title = tooltip;
+    setTimeout(() => { btn.innerHTML = '🌐 Googleで自動取得'; btn.title = ''; }, 6000);
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+function showCompetitorBreakdown(establishments, counts){
+  let el = document.getElementById('compBreakdown');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'compBreakdown';
+    el.style.cssText = 'grid-column:1/-1;margin-top:8px;padding:14px;background:var(--soft);border-radius:8px;border-left:4px solid var(--orange);font-size:12px';
+    document.getElementById('fCompetitors').closest('.field').after(el);
+  }
+  
+  const directList = establishments.filter(e => e.category === 'direct');
+  const synergyList = establishments.filter(e => e.category === 'synergy');
+  const neutralList = establishments.filter(e => e.category === 'neutral');
+  
+  // 店舗カード生成 (評価・口コミ付き)
+  const renderStore = (s) => {
+    const photoUrl = s.photos?.[0]?.name ? `/api/places/photo/${encodeURIComponent(s.photos[0].name)}?maxWidth=120` : null;
+    const ratingStr = s.rating ? `⭐${s.rating.toFixed(1)}` : '';
+    const countStr = s.ratingCount ? `(${s.ratingCount}件)` : '';
+    const weightBadge = s.weight > 1.2 ? '<span class="weight-badge hot">🔥強豪</span>' : 
+                        s.weight < 0.8 ? '<span class="weight-badge cool">小規模</span>' : '';
+    return `<div class="comp-store-card" title="${s.primaryTypeDisplayName || ''}">
+      ${photoUrl ? `<img src="${photoUrl}" class="comp-photo" loading="lazy" onerror="this.style.display='none'">` : '<div class="comp-photo-placeholder">🏪</div>'}
+      <div class="comp-store-info">
+        <div class="comp-store-name">${escapeHtml(s.name)}</div>
+        <div class="comp-store-meta">${ratingStr} ${countStr} ${weightBadge}</div>
+      </div>
+    </div>`;
+  };
+  
+  const calcScore = 50 + Math.min((counts.synergyWeighted||0)*2, 30) - (counts.directWeighted||0)*3 - (counts.neutralWeighted||0);
+  
+  el.innerHTML = `
+    <div style="font-weight:bold;color:var(--navy);margin-bottom:8px;font-size:13px">📊 半径100m 業態別内訳（口コミ件数による重み付け有効）</div>
+    ${counts.direct > 0 ? `
+      <div class="comp-section direct-section">
+        <div class="comp-section-title" style="color:var(--warn)">🍳 直撃競合 ${counts.direct}店（加重${counts.directWeighted?.toFixed(1)}）→ -${((counts.directWeighted||0)*3).toFixed(1)}点</div>
+        <div class="comp-store-list">${directList.map(renderStore).join('')}</div>
+      </div>` : ''}
+    ${counts.synergy > 0 ? `
+      <div class="comp-section synergy-section">
+        <div class="comp-section-title" style="color:var(--good)">🍺 共食エリア ${counts.synergy}店（加重${counts.synergyWeighted?.toFixed(1)}）→ +${Math.min((counts.synergyWeighted||0)*2, 30).toFixed(1)}点</div>
+        <div class="comp-store-list">${synergyList.map(renderStore).join('')}</div>
+      </div>` : ''}
+    ${counts.neutral > 0 ? `
+      <div class="comp-section neutral-section">
+        <div class="comp-section-title" style="color:var(--mute)">🍜 中立 ${counts.neutral}店（加重${counts.neutralWeighted?.toFixed(1)}）→ -${(counts.neutralWeighted||0).toFixed(1)}点</div>
+        <div class="comp-store-list">${neutralList.slice(0,8).map(renderStore).join('')}${neutralList.length>8?`<div class="comp-more">他${neutralList.length-8}店</div>`:''}</div>
+      </div>` : ''}
+    ${counts.excluded > 0 ? `<div style="color:#999;font-size:11px;margin-top:6px">☕ 除外(カフェ等) ${counts.excluded}店 (カウントせず)</div>` : ''}
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:12px;color:var(--navy)">
+      <strong>→ 競合スコア = 50 + ${Math.min((counts.synergyWeighted||0)*2, 30).toFixed(1)} - ${((counts.directWeighted||0)*3).toFixed(1)} - ${(counts.neutralWeighted||0).toFixed(1)} = <span style="color:var(--orange);font-size:14px">${calcScore.toFixed(1)}点</span></strong>
+    </div>
+    <div style="margin-top:4px;font-size:10px;color:#999">※ 🔥マーク = 口コミ多い強豪店(×1.5加重) / 小規模 = 口コミ少なめ(×0.5加重)</div>
+  `;
+}
+
+// ============ UI ============
+const $ = id => document.getElementById(id);
+const uploadZone = $("uploadZone");
+const pdfInput = $("pdfInput");
+const pdfStatus = $("pdfStatus");
+
+uploadZone.onclick = () => pdfInput.click();
+uploadZone.ondragover = e => { e.preventDefault(); uploadZone.classList.add('drag'); };
+uploadZone.ondragleave = () => uploadZone.classList.remove('drag');
+uploadZone.ondrop = e => { e.preventDefault(); uploadZone.classList.remove('drag'); handleFile(e.dataTransfer.files[0]); };
+pdfInput.onchange = e => handleFile(e.target.files[0]);
+
+async function handleFile(file){
+  if(!file || file.type !== "application/pdf") { showStatus("err", "⚠ PDFファイルを選択してください"); return; }
+  uploadZone.classList.add('loading');
+  uploadZone.querySelector('.upload-icon').innerHTML = '<span class="spinner"></span>';
+  uploadZone.querySelector('.upload-text').textContent = "PDFを解析中...";
+  try{
+    const data = await extractPdf(file);
+    applyExtracted(data);
+    showStatusSuccess(data);
+  } catch(err){
+    showStatus("err", "⚠ PDF解析に失敗: " + err.message);
+  } finally {
+    uploadZone.classList.remove('loading');
+    uploadZone.querySelector('.upload-icon').textContent = '📄';
+    uploadZone.querySelector('.upload-text').textContent = "別のPDFを読み込む";
+  }
+}
+
+function applyExtracted(d){
+  if(d.name) $("fName").value = d.name;
+  if(d.address) $("fAddress").value = d.address;
+  if(d.tsubo) $("fTsubo").value = d.tsubo;
+  if(d.floor) $("fFloor").value = d.floor;
+  if(d.rent) $("fRent").value = d.rent;
+  if(d.pop500) $("fPop500").value = d.pop500;
+  if(d.target2049) $("fTarget2049").value = d.target2049;
+  if(d.pop1000) $("fPop1000").value = d.pop1000;
+  if(d.pop2000) $("fPop2000").value = d.pop2000;
+  if(d.pedestrian) $("fPedestrian").value = d.pedestrian;
+  if(d.stationUsers) $("fStationUsers").value = d.stationUsers;
+}
+
+function showStatusSuccess(d){
+  const items = [];
+  const fmt = (label, val, unit="") => val ? `<div class="extract-item"><div class="extract-label">${label}</div><div class="extract-value">${typeof val==='number'?val.toLocaleString():val}${unit}</div></div>` : "";
+  items.push(fmt("物件名", d.name));
+  items.push(fmt("住所", d.address));
+  items.push(fmt("坪数", d.tsubo, "坪"));
+  items.push(fmt("賃料", d.rent, "円"));
+  items.push(fmt("500m人口", d.pop500, "人"));
+  items.push(fmt("20-49歳", d.target2049, "人"));
+  items.push(fmt("通行者月", d.pedestrian, "人"));
+  items.push(fmt("駅乗降", d.stationUsers, "人/日"));
+  const cnt = items.filter(x=>x).length;
+  pdfStatus.className = "pdf-status show";
+  pdfStatus.innerHTML = `<h3>✅ PDF解析完了（${cnt}項目を抽出）</h3><div class="extract-grid">${items.join("")}</div>`;
+}
+
+function showStatus(type, html){
+  pdfStatus.className = "pdf-status show " + (type==="err" ? "err" : "");
+  pdfStatus.innerHTML = `<h3>${html}</h3>`;
+}
+
+// ============ スコア算出 ============
+$("calcBtn").onclick = calculateScore;
+
+function calculateScore(){
+  const tsubo = parseFloat($("fTsubo").value) || 0;
+  const inp = {
+    name: $("fName").value || "新物件",
+    registrant: $("fRegistrant").value.trim(),
+    address: $("fAddress").value.trim(),
+    tsubo,
+    seats: parseInt($("fSeats").value) || Math.round(tsubo*1.5),
+    floor: parseInt($("fFloor").value) || 1,
+    rent: parseFloat($("fRent").value) || 0,
+    pop500: parseFloat($("fPop500").value) || 0,
+    target2049: parseFloat($("fTarget2049").value) || 0,
+    pop1000: parseFloat($("fPop1000").value) || 0,
+    pop2000: parseFloat($("fPop2000").value) || 0,
+    pedestrian: parseFloat($("fPedestrian").value) || 0,
+    stationUsers: parseFloat($("fStationUsers").value) || 0,
+    comp: parseFloat($("fCompetitors").value) || 0,
+    // Google 自動取得があれば分類データも含める
+    compDirect: window.lastCompClassification?.direct,
+    compSynergy: window.lastCompClassification?.synergy,
+    compNeutral: window.lastCompClassification?.neutral ?? (parseFloat($("fCompetitors").value) || 0),
+    compDirectWeighted: window.lastCompClassification?.directWeighted,
+    compSynergyWeighted: window.lastCompClassification?.synergyWeighted,
+    compNeutralWeighted: window.lastCompClassification?.neutralWeighted,
+    search: parseFloat($("fSearchDemand").value) || 0,
+    hire: $("fHire").value,
+    inbound: parseFloat($("fInbound").value) || 0,
+    biz: $("fBiz").value,
+  };
+  
+  if(inp.tsubo<=0 || inp.rent<=0 || inp.pop500<=0){
+    alert("坪数・賃料・500m総人口は必須です");
+    return;
+  }
+  
+  const scores = computeScores(inp);
+  const total = computeTotal(scores, inp.biz);
+  const rank = deriveRank(total);
+  
+  // 類似店舗
+  const rows = BASELINE_RESULTS.map(r => ({ ...r, diff: Math.abs(r.total - total) }));
+  rows.sort((a, b) => a.diff - b.diff);
+  const near = rows.slice(0, 3);
+  const ebs = near.map(r => r.ebitda);
+  const ebitdaProjection = {
+    min: Math.min.apply(null, ebs),
+    max: Math.max.apply(null, ebs),
+    mean: mean(ebs),
+    similarStores: near.map(r => r.name)
+  };
+  
+  newPropertyResult = { ...inp, scores, total, rank, ebitdaProjection, similar: near };
+  
+  renderScatter();
+  renderTable();
+  renderResults(inp, scores, total, rank, ebitdaProjection, near);
+  
+  // 履歴保存(サーバーへ非同期保存、UI描画はブロックしない)
+  saveHistoryEntry(inp, scores, total, rank, ebitdaProjection);
+}
+
+function renderResults(inp, scores, total, rank, ebitdaProjection, similar){
+  $("totalScore").textContent = total.toFixed(1);
+  const rankEl = $("totalRank");
+  rankEl.textContent = "ランク " + rank;
+  rankEl.className = "score-rank-badge rank-" + rank;
+  $("scoreHint").textContent = `偏差値50 = 既存12店舗平均｜業態: ${inp.biz}｜重み自動較正(v3.0)`;
+  
+  // 期待EBITDA率と期待月次営業利益額を併記表示
+  const fmt = v => (v >= 0 ? '+' : '') + (v*100).toFixed(1) + '%';
+  const estRevenue = estimateRevenueFromSimilar(newPropertyResult || {similar: similar});
+  const fmtYen = v => {
+    const man = v / 10000;
+    const sign = man >= 0 ? '+' : '';
+    return sign + '¥' + Math.abs(man).toFixed(0) + '万';
+  };
+  const profMin = estRevenue * ebitdaProjection.min;
+  const profMax = estRevenue * ebitdaProjection.max;
+  const profMean = estRevenue * ebitdaProjection.mean;
+  $("ebitdaProjValue").innerHTML = 
+    `<div style="font-size:18px">月次営業利益: <strong>${fmtYen(profMin)} 〜 ${fmtYen(profMax)}</strong></div>
+     <div style="font-size:13px;opacity:.85;margin-top:4px">利益率: ${fmt(ebitdaProjection.min)} 〜 ${fmt(ebitdaProjection.max)} (中央 ${fmt(ebitdaProjection.mean)})</div>
+     <div style="font-size:10px;opacity:.7;margin-top:3px">※ 類似店舗平均月商(税抜) ¥${(estRevenue/10000).toFixed(0)}万円 × 利益率レンジ</div>`;
+  
+  const axisNames = [["pop","需要効率"],["comp","競合"],["rent","家賃"],["search","検索"],["hire","採用"]];
+  $("axisGrid").innerHTML = axisNames.map(([k,name])=>{
+    const v = scores[k];
+    const cls = v >= 55 ? 'high' : v < 45 ? 'low' : 'mid';
+    const bg = v >= 55 ? '#2E7D32' : v < 45 ? '#C62828' : '#ED6C02';
+    return `<div class="axis-card">
+      <div class="axis-name">${name}</div>
+      <div class="axis-value">${v.toFixed(1)}</div>
+      <div class="axis-bar"><div class="axis-bar-fill" style="width:${Math.min(100, v*1.4)}%;background:${bg}"></div></div>
+    </div>`;
+  }).join("");
+  
+  // アラート
+  const alerts = [];
+  const tsuboPrice = inp.rent / inp.tsubo;
+  const seatRent = inp.rent / inp.seats;
+  if(tsuboPrice > 32000) alerts.push(["red","🚨","坪単価が極めて高い",`${Math.round(tsuboPrice).toLocaleString()}円/坪。京都木屋町(35,714円)級。`]);
+  else if(tsuboPrice > 25000) alerts.push(["yellow","⚠","坪単価が高い",`${Math.round(tsuboPrice).toLocaleString()}円/坪。月島(26,786円)級。`]);
+  if(seatRent > 17000) alerts.push(["yellow","⚠","席あたり家賃が高い",`${Math.round(seatRent).toLocaleString()}円/席。`]);
+  if(inp.comp >= 15) alerts.push(["yellow","⚠","競合多い",`100m内${inp.comp}店。差別化必須。`]);
+  if(inp.hire === "D" || inp.hire === "E") alerts.push(["yellow","⚠","採用難エリア","人件費・シフトリスク。"]);
+  if(scores.pop < 40) alerts.push(["yellow","⚠","需要効率が低い","賃料に対してターゲット人口が薄い。ただし京都・刈谷のように繁華街集客で覆せる例あり。"]);
+  if(inp.inbound >= 0.3) alerts.push(["yellow","⚠","インバウンド依存","京都木屋町型。為替・訪日客数変動リスクに留意（v3.0からスコアには加点していません）。"]);
+  if(inp.floor === -1) alerts.push(["yellow","⚠","地下階","夜型業態でないなら-5〜-10%の客数影響。"]);
+  if(inp.floor === 2) alerts.push(["yellow","⚠","2階以上","SNS・MEO強化が必要。"]);
+  
+  // v3.0: 外挿警告（既存12店舗の分布から外れた入力は予測信頼度が低い）
+  const extrap = [];
+  const effNew = (inp.target2049 > 0 ? inp.target2049 : inp.pop500*0.44) / inp.rent * 1e5;
+  const effArr = BASELINE.map(s => s.target2049/s.rent*1e5);
+  if(effNew > Math.max(...effArr)*1.2 || effNew < Math.min(...effArr)*0.8) extrap.push("需要効率");
+  const tpArr = BASELINE.map(s => s.rent/s.tsubo);
+  if(tsuboPrice > Math.max(...tpArr)*1.2 || tsuboPrice < Math.min(...tpArr)*0.8) extrap.push("坪単価");
+  const searchArr = BASELINE.map(s => s.search);
+  if(inp.search > Math.max(...searchArr)*1.5) extrap.push("検索需要");
+  if(extrap.length) alerts.push(["yellow","🧭","既存店レンジ外（外挿）",`${extrap.join("・")}が既存12店舗の分布から大きく外れています。スコア・期待レンジの信頼度が下がるため現地確認の比重を上げてください。`]);
+  
+  if(scores.pop >= 60 && scores.comp >= 55 && tsuboPrice < 15000) alerts.push(["green","✅","三拍子揃った好物件","刈谷駅前(月利益¥124万)・向ヶ丘遊園(月利益¥116万)級。"]);
+  if(alerts.length === 0) alerts.push(["green","✓","明らかなリスク要因なし","現地確認で最終判断を。"]);
+  
+  $("alertList").innerHTML = alerts.map(([type,icon,title,body]) => `
+    <div class="alert alert-${type}">
+      <div class="alert-icon">${icon}</div>
+      <div><strong>${title}</strong><br>${body}</div>
+    </div>
+  `).join("");
+  
+  // 解釈（類似店舗の利益額・利益率を併記）
+  const top2 = similar.slice(0, 2);
+  const simInfo = top2.map(s => {
+    const profStr = s.profit >= 0 
+      ? '+¥' + (s.profit/10000).toFixed(0) + '万' 
+      : '¥' + (s.profit/10000).toFixed(0) + '万';
+    const ebStr = (s.ebitda >= 0 ? '+' : '') + (s.ebitda*100).toFixed(1) + '%';
+    return s.name + '(' + profStr + '/' + ebStr + ')';
+  }).join('・');
+  const avgProfit = mean(top2.map(s => s.profit || 0));
+  const avgEb = mean(top2.map(s => s.ebitda));
+  
+  let verdict, color;
+  if(avgProfit >= 1000000 && avgEb >= 0.12) { verdict = '強く投資推奨'; color = '#2E7D32'; }
+  else if(avgProfit >= 500000 && avgEb >= 0.05) { verdict = '投資推奨'; color = '#2E7D32'; }
+  else if(avgProfit >= 200000 && avgEb >= 0) { verdict = '条件次第で投資可'; color = '#ED6C02'; }
+  else if(avgProfit >= 0) { verdict = '慎重判断を要する'; color = '#ED6C02'; }
+  else { verdict = '投資見送り推奨'; color = '#C62828'; }
+  
+  let insight = '';
+  if(inp.inbound >= 0.3) insight += '<div class="insight">💡 <strong>インバウンド30%+</strong>：京都木屋町(+¥181万/+21.1%)と類似。21坪38席で月商858万＝「単価でなく回転で勝つ」京都モデル。オーナーの観光客運営力が勝敗を分ける。</div>';
+  if(inp.comp >= 15) insight += '<div class="insight">💡 <strong>激戦区</strong>：月島本店(▲¥2万/▲0.4%)の収支トントンパターン注意。直撃競合密集×高賃料の組合せは構造的に厳しい。</div>';
+  if(inp.pop500 < 5000 && scores.comp >= 60) insight += '<div class="insight">💡 <strong>小商圏×競合少</strong>：刈谷(+¥124万/+19.4%)の成功パターン。商圏小でも競合不在で勝てる。</div>';
+  
+  $("interpText").innerHTML = `
+    <strong>📌 解釈:</strong> 総合スコア <strong>${total.toFixed(1)}</strong> は既存店の
+    <strong>${simInfo}</strong>と類似 → 
+    <span style="color:${color};font-weight:bold">${verdict}</span>
+    ${insight}
+  `;
+  
+  $("results").classList.add("show");
+  $("results").scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+// ============ 評価履歴（サーバー共有ストレージ） ============
+const HISTORY_API = '/api/history';
+let historyCache = [];
+
+async function fetchHistory(){
+  try{
+    const resp = await fetch(HISTORY_API);
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    historyCache = data.entries || [];
+    return historyCache;
+  } catch(err){
+    console.error('History fetch error:', err);
+    return historyCache;
+  }
+}
+
+async function saveHistoryEntry(inp, scores, total, rank, ebitdaProjection){
+  const entry = {
+    savedAt: new Date().toISOString(),
+    name: inp.name,
+    registrant: inp.registrant || '',
+    address: inp.address || '',
+    biz: inp.biz,
+    tsubo: inp.tsubo,
+    seats: inp.seats,
+    floor: inp.floor,
+    rent: inp.rent,
+    pop500: inp.pop500,
+    target2049: inp.target2049,
+    pop1000: inp.pop1000,
+    pop2000: inp.pop2000,
+    pedestrian: inp.pedestrian,
+    stationUsers: inp.stationUsers,
+    comp: inp.comp,
+    compDirect: inp.compDirect ?? null,
+    compSynergy: inp.compSynergy ?? null,
+    compNeutral: inp.compNeutral ?? null,
+    search: inp.search,
+    hire: inp.hire,
+    inbound: inp.inbound,
+    scores, total, rank,
+    ebitdaMin: ebitdaProjection.min,
+    ebitdaMax: ebitdaProjection.max,
+    ebitdaMean: ebitdaProjection.mean,
+    similarStores: ebitdaProjection.similarStores
+  };
+  try{
+    const resp = await fetch(HISTORY_API, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry)
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    entry.id = data.id;
+    historyCache.unshift(entry);
+    updateHistoryBadge();
+    showToast('💾 評価履歴に保存しました（全員に共有されます）', 'success');
+  } catch(err){
+    console.error('History save error:', err);
+    showToast('⚠ 履歴の保存に失敗しました（スコア計算は完了）', 'error');
+  }
+}
+
+async function deleteHistoryEntry(id){
+  if(!confirm('この履歴を削除しますか？（全員の画面から消えます）')) return;
+  try{
+    const resp = await fetch(HISTORY_API + '/' + encodeURIComponent(id), { method: 'DELETE' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    historyCache = historyCache.filter(e => e.id !== id);
+    renderHistoryList();
+    updateHistoryBadge();
+    showToast('🗑 履歴を削除しました', 'success');
+  } catch(err){
+    console.error('History delete error:', err);
+    showToast('⚠ 削除に失敗しました', 'error');
+  }
+}
+
+function updateHistoryBadge(){
+  const badge = document.getElementById('fabBadge');
+  const n = historyCache.length;
+  if(n > 0){
+    badge.textContent = n > 99 ? '99+' : n;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function openHistoryModal(){
+  document.getElementById('historyModal').classList.add('show');
+  document.getElementById('historyBody').innerHTML = '<div class="modal-empty"><span class="spinner"></span> 履歴を読み込み中...</div>';
+  fetchHistory().then(() => {
+    renderHistoryList();
+    updateHistoryBadge();
+  });
+}
+
+function closeHistoryModal(){
+  document.getElementById('historyModal').classList.remove('show');
+}
+
+function renderHistoryList(){
+  const body = document.getElementById('historyBody');
+  if(historyCache.length === 0){
+    body.innerHTML = '<div class="modal-empty">まだ評価履歴がありません。<br>物件を評価すると自動で保存され、チーム全員に共有されます。</div>';
+    return;
+  }
+  const rows = historyCache.map(e => {
+    const dt = new Date(e.savedAt);
+    const dateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+    const registrantTag = e.registrant ? `<span class="registrant-tag">👤 ${escapeHtml(e.registrant)}</span>` : '';
+    const ebStr = (e.ebitdaMin !== undefined && e.ebitdaMax !== undefined)
+      ? `${(e.ebitdaMin*100).toFixed(1)}〜${(e.ebitdaMax*100).toFixed(1)}%` : '—';
+    return `<tr>
+      <td>${escapeHtml(e.name)}${registrantTag}<div class="hist-meta">${escapeHtml(e.address || '')}</div></td>
+      <td class="num"><strong>${(e.total ?? 0).toFixed(1)}</strong></td>
+      <td><span class="history-rank-cell rank-${e.rank}">${e.rank}</span></td>
+      <td class="num">${e.tsubo || '—'}坪</td>
+      <td class="num">¥${((e.rent||0)/10000).toFixed(0)}万</td>
+      <td class="num">${ebStr}</td>
+      <td>${dateStr}</td>
+      <td>
+        <div class="history-row-actions">
+          <button class="btn-icon load" data-id="${e.id}" title="この内容をフォームに読み込む">📝 読込</button>
+          <button class="btn-icon delete" data-id="${e.id}" title="削除">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  
+  body.innerHTML = `
+    <div class="table-scroll">
+      <table class="history-table">
+        <thead>
+          <tr><th>物件名</th><th>スコア</th><th>ランク</th><th>坪数</th><th>賃料</th><th>期待利益率</th><th>評価日時</th><th>操作</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--mute);margin-top:10px">💡 履歴はサーバーに保存され、このURLを開く全員に共有されます（最大500件）</div>
+  `;
+  
+  body.querySelectorAll('.btn-icon.load').forEach(btn => {
+    btn.onclick = () => loadHistoryEntry(btn.dataset.id);
+  });
+  body.querySelectorAll('.btn-icon.delete').forEach(btn => {
+    btn.onclick = () => deleteHistoryEntry(btn.dataset.id);
+  });
+}
+
+function loadHistoryEntry(id){
+  const e = historyCache.find(x => x.id === id);
+  if(!e) return;
+  $("fName").value = e.name || '';
+  $("fRegistrant").value = e.registrant || '';
+  $("fAddress").value = e.address || '';
+  $("fTsubo").value = e.tsubo || '';
+  $("fSeats").value = e.seats || '';
+  $("fFloor").value = e.floor ?? 1;
+  $("fRent").value = e.rent || '';
+  $("fPop500").value = e.pop500 || '';
+  $("fTarget2049").value = e.target2049 || '';
+  $("fPop1000").value = e.pop1000 || '';
+  $("fPop2000").value = e.pop2000 || '';
+  $("fPedestrian").value = e.pedestrian || '';
+  $("fStationUsers").value = e.stationUsers || '';
+  $("fCompetitors").value = e.comp || '';
+  $("fSearchDemand").value = e.search || '';
+  $("fHire").value = e.hire || 'C';
+  $("fInbound").value = e.inbound ?? 0.05;
+  $("fBiz").value = e.biz || 'どてっぱん';
+  if(e.compDirect !== null && e.compDirect !== undefined){
+    window.lastCompClassification = {
+      direct: e.compDirect, synergy: e.compSynergy, neutral: e.compNeutral,
+      directWeighted: e.compDirect, synergyWeighted: e.compSynergy, neutralWeighted: e.compNeutral
+    };
+  } else {
+    window.lastCompClassification = null;
+  }
+  closeHistoryModal();
+  document.querySelector('.section:nth-of-type(3)').scrollIntoView({behavior:'smooth'});
+  showToast('📝 「' + (e.name || '物件') + '」をフォームに読み込みました', 'success');
+}
+
+function exportHistoryCsv(){
+  if(historyCache.length === 0){ showToast('履歴がありません', 'error'); return; }
+  const headers = ['評価日時','物件名','登録者','住所','業態','総合スコア','ランク','坪数','席数','階数','賃料','500m人口','20-49歳','1000m人口','2000m人口','通行量','駅乗降','競合数','直撃','共食','中立','検索需要','採用','インバウンド','需要効率スコア','競合スコア','家賃スコア','検索スコア','採用スコア','期待利益率Min','期待利益率Max','類似店舗'];
+  const lines = historyCache.map(e => [
+    e.savedAt, e.name, e.registrant||'', e.address||'', e.biz,
+    (e.total??0).toFixed(1), e.rank, e.tsubo, e.seats, e.floor, e.rent,
+    e.pop500, e.target2049, e.pop1000, e.pop2000, e.pedestrian, e.stationUsers,
+    e.comp, e.compDirect??'', e.compSynergy??'', e.compNeutral??'',
+    e.search, e.hire, e.inbound,
+    e.scores?.pop?.toFixed(1)??'', e.scores?.comp?.toFixed(1)??'', e.scores?.rent?.toFixed(1)??'',
+    e.scores?.search?.toFixed(1)??'', e.scores?.hire?.toFixed(1)??'',
+    e.ebitdaMin!==undefined?(e.ebitdaMin*100).toFixed(1)+'%':'',
+    e.ebitdaMax!==undefined?(e.ebitdaMax*100).toFixed(1)+'%':'',
+    (e.similarStores||[]).join('/')
+  ].map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(','));
+  const csv = '\uFEFF' + headers.join(',') + '\n' + lines.join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `どてっぱん物件評価履歴_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📥 CSVをダウンロードしました', 'success');
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function showToast(msg, type){
+  const t = document.createElement('div');
+  t.className = 'toast ' + (type || '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 2600);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// 履歴UI イベント
+document.getElementById('historyFab').onclick = openHistoryModal;
+document.getElementById('modalCloseBtn').onclick = closeHistoryModal;
+document.getElementById('exportCsvBtn').onclick = exportHistoryCsv;
+document.getElementById('historyModal').onclick = (e) => {
+  if(e.target === document.getElementById('historyModal')) closeHistoryModal();
+};
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape') closeHistoryModal();
+});
+
+// 初回ロード時にバッジ更新
+fetchHistory().then(updateHistoryBadge);
+
+// ============ ベースライン競合の再分析（サーバー保存） ============
+const BASELINE_COMP_API = '/api/baseline-competitors';
+
+// 起動時: サーバーに保存済みの再分析結果があれば適用
+async function loadBaselineCompetitorsFromServer(){
+  try{
+    const resp = await fetch(BASELINE_COMP_API);
+    if(!resp.ok) return;
+    const data = await resp.json();
+    if(!data.stores || !Object.keys(data.stores).length) return;
+    
+    let applied = 0;
+    BASELINE.forEach(s => {
+      const saved = data.stores[s.id];
+      if(saved){
+        s.compDirect = saved.direct;
+        s.compSynergy = saved.synergy;
+        s.compNeutral = saved.neutral;
+        if(saved.directWeighted !== undefined){
+          s.compDirectWeighted = saved.directWeighted;
+          s.compSynergyWeighted = saved.synergyWeighted;
+          s.compNeutralWeighted = saved.neutralWeighted;
+        }
+        applied++;
+      }
+    });
+    if(applied > 0){
+      // スコア再計算(較正重みも自動更新される)
+      BASELINE_RESULTS = computeBaselineResults();
+      renderScatter();
+      renderTable();
+      const st = document.getElementById('reanalyzeStatus');
+      const dt = data.analyzedAt ? new Date(data.analyzedAt) : null;
+      st.textContent = dt 
+        ? `（Google実データ: ${dt.getFullYear()}/${dt.getMonth()+1}/${dt.getDate()} 分析済み）`
+        : '（Google実データ適用済み）';
+    }
+  } catch(err){
+    console.warn('Baseline competitors load skipped:', err.message);
+  }
+}
+loadBaselineCompetitorsFromServer();
+
+// 再分析ボタン: 12店舗の競合を Google Places API で再取得 → サーバー保存
+document.getElementById('reanalyzeBtn').onclick = async () => {
+  const btn = document.getElementById('reanalyzeBtn');
+  const st = document.getElementById('reanalyzeStatus');
+  if(!confirm('12店舗すべての周辺競合を Google Places API で再分析します。\n約1〜2分かかります。よろしいですか？\n\n※ 結果はサーバーに保存され、全員のツールに反映されます')) return;
+  
+  btn.disabled = true;
+  const results = {};
+  let done = 0;
+  
+  for(const s of BASELINE){
+    btn.innerHTML = `<span class="spinner"></span>${done+1}/12 ${s.name.slice(0,6)}...`;
+    try{
+      const g = await geocode(s.address);
+      const { counts } = await fetchCompetitors(g.lat, g.lon, 100, false);
+      results[s.id] = {
+        direct: counts.direct, synergy: counts.synergy, neutral: counts.neutral,
+        directWeighted: counts.directWeighted, synergyWeighted: counts.synergyWeighted, neutralWeighted: counts.neutralWeighted
+      };
+      done++;
+    } catch(err){
+      console.warn(`${s.name} の再分析に失敗:`, err.message);
+    }
+    await new Promise(r => setTimeout(r, 300));
+  }
+  
+  if(done > 0){
+    // ローカル適用
+    BASELINE.forEach(s => {
+      const r = results[s.id];
+      if(r){
+        s.compDirect = r.direct; s.compSynergy = r.synergy; s.compNeutral = r.neutral;
+        s.compDirectWeighted = r.directWeighted; s.compSynergyWeighted = r.synergyWeighted; s.compNeutralWeighted = r.neutralWeighted;
+      }
+    });
+    BASELINE_RESULTS = computeBaselineResults();
+    renderScatter();
+    renderTable();
+    
+    // サーバー保存
+    try{
+      await fetch(BASELINE_COMP_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ analyzedAt: new Date().toISOString(), stores: results })
+      });
+      st.textContent = `（Google実データ: ${done}/12店 分析済み・全員に共有）`;
+      showToast(`✅ ${done}店舗の競合データを更新しました`, 'success');
+    } catch(err){
+      st.textContent = `（${done}/12店 分析済み・保存失敗）`;
+      showToast('⚠ サーバー保存に失敗（画面には反映済み）', 'error');
+    }
+  } else {
+    showToast('⚠ 再分析に失敗しました', 'error');
+  }
+  btn.innerHTML = '🔄 Googleで12店舗再分析';
+  btn.disabled = false;
+};
+
+// ============ 住所オートコンプリート ============
+(function setupAddressAutocomplete(){
+  const input = document.getElementById('fAddress');
+  const dropdown = document.getElementById('addressDropdown');
+  let debounceTimer = null;
+  let activeIndex = -1;
+  let currentItems = [];
+  let sessionToken = null;
+  
+  function genSessionToken(){
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random()*16|0, v = c === 'x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+    });
+  }
+  
+  input.addEventListener('input', () => {
+    window.selectedPlaceId = null;
+    const q = input.value.trim();
+    clearTimeout(debounceTimer);
+    if(q.length < 3){ hideDropdown(); return; }
+    debounceTimer = setTimeout(() => fetchSuggestions(q), 300);
+  });
+  
+  input.addEventListener('keydown', (e) => {
+    if(!dropdown.classList.contains('show')) return;
+    if(e.key === 'ArrowDown'){ e.preventDefault(); moveActive(1); }
+    else if(e.key === 'ArrowUp'){ e.preventDefault(); moveActive(-1); }
+    else if(e.key === 'Enter'){ 
+      if(activeIndex >= 0 && currentItems[activeIndex]){ e.preventDefault(); selectItem(currentItems[activeIndex]); }
+    }
+    else if(e.key === 'Escape'){ hideDropdown(); }
+  });
+  
+  document.addEventListener('click', (e) => {
+    if(!input.contains(e.target) && !dropdown.contains(e.target)) hideDropdown();
+  });
+  
+  async function fetchSuggestions(q){
+    if(!sessionToken) sessionToken = genSessionToken();
+    dropdown.innerHTML = '<div class="ac-loading"><span class="spinner"></span> 検索中...</div>';
+    dropdown.classList.add('show');
+    try{
+      const resp = await fetch('/api/places/autocomplete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ input: q, sessionToken })
+      });
+      if(!resp.ok){
+        const err = await resp.json().catch(() => ({}));
+        const hint = err.hint ? `<div style="font-size:10px;margin-top:4px;opacity:.8">${escapeHtml(err.hint)}</div>` : '';
+        dropdown.innerHTML = `<div class="ac-empty">⚠ ${escapeHtml(err.error || '検索エラー')}${hint}</div>`;
+        console.error('[Autocomplete failed]', err);
+        return;
+      }
+      const data = await resp.json();
+      currentItems = data.suggestions || [];
+      activeIndex = -1;
+      if(currentItems.length === 0){
+        dropdown.innerHTML = '<div class="ac-empty">候補が見つかりません（そのまま入力でもOK）</div>';
+        return;
+      }
+      dropdown.innerHTML = currentItems.map((s, i) => `
+        <div class="ac-item" data-i="${i}">
+          <div class="ac-main">${escapeHtml(s.mainText || s.text)}</div>
+          ${s.secondaryText ? `<div class="ac-sub">${escapeHtml(s.secondaryText)}</div>` : ''}
+        </div>
+      `).join('');
+      dropdown.querySelectorAll('.ac-item').forEach(el => {
+        el.onclick = () => selectItem(currentItems[parseInt(el.dataset.i)]);
+      });
+    } catch(err){
+      dropdown.innerHTML = '<div class="ac-empty">⚠ 通信エラー</div>';
+    }
+  }
+  
+  function moveActive(dir){
+    const items = dropdown.querySelectorAll('.ac-item');
+    if(!items.length) return;
+    activeIndex = (activeIndex + dir + items.length) % items.length;
+    items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+  }
+  
+  function selectItem(item){
+    input.value = item.text || item.mainText;
+    window.selectedPlaceId = item.placeId || null;
+    sessionToken = null;
+    hideDropdown();
+  }
+  
+  function hideDropdown(){
+    dropdown.classList.remove('show');
+    activeIndex = -1;
+  }
+})();
+</script>
+</body>
+</html>
