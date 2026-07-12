@@ -34,6 +34,22 @@ GitHub Pages: https://kento-umapro.github.io/doteppan-bukken/
   **上級基準（坪単価2万円超〜4万円・月額100万円以下）に該当する募集は `premium` に追加すること。**
 - 判定作業で sc / rk / pr を付与し、偏差値50未満は削除する。
 
+### 無人スコア判定（推奨・自動）
+
+`tools/scoreing/score-cli.js` は、判定ツール画面の「🌐 Googleで自動取得」→「スコア判定」と
+**同一のAPI・同一の計算式**で自動査定するCLI。計算エンジンは `index.html` から実行時に抽出する
+ため、ツール本体を更新すればCLIも自動で追従する。
+
+```bash
+cd tools/scoreing
+DVS_URL=https://<ツールのURL> DVS_TOKEN=<ACCESS_TOKEN> node score-cli.js premium5.json
+# → 各物件の偏差値・ランク・競合内訳を表示し premium5.result.json に保存
+```
+
+入力JSONの形式は `premium5.json` を参照（住所・坪数・賃料・階数・500m人口等）。
+毎朝の巡回セッションは判定待ちを追加したら、このCLIで判定して sc/rk/pr を付与し、
+50未満を削除してから data.json をプッシュすること。
+
 ### スコア判定の必須手順（物件スコア判定ツール）
 
 1. 住所欄に物件の住所を入力したら、付加情報の**「半径100m以内の同業態競合数」の右にある「🌐 Googleで自動取得」ボタンを必ず先に押す**。
