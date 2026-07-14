@@ -123,6 +123,7 @@ async function judge(p) {
 
   return {
     name: p.name, address: p.address, geocoded: geo.formattedAddress,
+    ll: [Math.round(lat * 1e4) / 1e4, Math.round(lng * 1e4) / 1e4], // data.jsonのピン座標更新用
     sc: Math.round(total * 10) / 10, rank,
     scores: Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, Math.round(v * 10) / 10])),
     counts,

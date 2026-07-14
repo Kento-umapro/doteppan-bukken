@@ -402,9 +402,9 @@ function buildMap(items){
   items.filter(x=>x.ll).forEach(x=>{
     const c=FLCOLOR[x.s]||'#c2352a';
     const mk=L.circleMarker(x.ll,{radius:17,color:'#fff',weight:3,fillColor:c,fillOpacity:.96}).addTo(mapObj);
-    mk.bindTooltip(String(x.sc),{permanent:true,direction:'center',className:'pinlab'});
+    mk.bindTooltip(x.sc?String(x.sc):'…',{permanent:true,direction:'center',className:'pinlab'});
     mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
-      `<p class="m">${floorBadge(x.s)}｜出店偏差値 ${x.sc}（ランク${esc(x.rk)}）<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>${esc(x.a)}</p>`+
+      `<p class="m">${floorBadge(x.s)}｜${x.sc?`出店偏差値 ${x.sc}（ランク${esc(x.rk)}）`:'出店偏差値 判定待ち'}<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>${esc(x.a)}</p>`+
       `<a class="go" href="javascript:__jumpCard('${cardId(x)}')">リストで詳細を見る</a></div>`);
     pts.push(x.ll);
   });
