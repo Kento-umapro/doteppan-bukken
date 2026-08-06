@@ -1,0 +1,307 @@
+<meta charset="utf-8">
+<title>HUNGRY 出店候補物件情報</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --ink:#241c10; --ink2:#2a241d; --sub:#6f665a; --paper:#fdf8ee; --card:#fffdf8;
+  --line:#e8ddc4; --brand:#c8a013; --brand-d:#8f6f00; --chip:#f3ecd8;
+  --ok:#1e7a4d; --lt:#5b4a86; --warn:#b23a2f; --accent:#b5651d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN",-apple-system,sans-serif;
+  font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px 64px}
+
+/* ===== hero ===== */
+.hero{background:radial-gradient(120% 90% at 50% -10%, #4a3a12 0%, #241c10 55%);
+  color:#f6efdd;padding:30px 16px 26px;border-bottom:4px solid var(--brand)}
+.hero .in{max-width:760px;margin:0 auto}
+.hero .eyebrow{font-size:10.5px;letter-spacing:.3em;color:#d9bd6a;font-weight:700}
+.hero h1{margin:3px 0 4px;font-size:25px;font-weight:800;letter-spacing:.05em;line-height:1.3;text-wrap:balance}
+.hero .sub{margin:0;font-size:12px;color:#c2b596;letter-spacing:.04em}
+.hero .sub b{color:#ecdfc0;font-weight:700}
+
+.lead{margin:26px 0 6px;font-size:15.5px;font-weight:700;line-height:2;text-wrap:balance}
+.lead b{color:var(--brand-d)}
+.criteria{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:16px 0 8px}
+.criteria h2{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:13px;letter-spacing:.16em;color:var(--brand-d);font-weight:800}
+.criteria h2::before{content:"";width:14px;height:14px;background:var(--brand);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.criteria ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
+.criteria li{display:flex;gap:12px;align-items:baseline;font-size:14.5px;border-bottom:1px dashed var(--line);padding-bottom:9px}
+.criteria li:last-child{border-bottom:none;padding-bottom:0}
+.criteria li .k{flex:none;min-width:88px;font-size:11px;font-weight:800;color:var(--sub);letter-spacing:.1em}
+.note{font-size:12px;color:var(--sub);margin:10px 2px 0}
+
+/* ===== store grid ===== */
+.region{margin:28px 0 0}
+.region h3{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:12px;letter-spacing:.22em;color:var(--sub);font-weight:800}
+.region h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sbtn{position:relative;border:1px solid var(--line);background:var(--card);border-radius:10px;
+  padding:12px 8px 10px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink);cursor:pointer;text-align:center;transition:transform .06s ease}
+.sbtn:active{transform:scale(.96)}
+.sbtn:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.sbtn .cnt{display:block;font-size:10.5px;font-weight:700;color:#a89c88;margin-top:2px;letter-spacing:.04em}
+.sbtn.has{border-color:var(--ink);background:var(--ink);color:#f7f1e0;box-shadow:0 4px 14px rgba(36,28,16,.25)}
+.sbtn.has .cnt{color:#d9bd6a}
+.sbtn .bd{display:inline-block;font-size:9px;font-weight:800;border-radius:5px;padding:1px 6px;margin-right:4px;vertical-align:1px;background:var(--brand);color:#fff}
+.sbtn .bd.rm{background:var(--accent)}
+
+/* ===== listing page ===== */
+.crumb{margin:20px 0 2px;font-size:12.5px}
+.crumb a{color:var(--brand-d);text-decoration:none;font-weight:800}
+h2.pref{margin:2px 0 4px;font-size:22px;font-weight:800;letter-spacing:.04em}
+.meta{font-size:12.5px;color:var(--sub);margin-bottom:4px}
+.cards{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 17px 15px;box-shadow:0 2px 10px rgba(36,28,16,.05)}
+.card h4{margin:0;font-size:15.5px;font-weight:800;line-height:1.55}
+.ctop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dist{flex:none;text-align:center;background:var(--ink);color:#f5eedd;border-radius:10px;padding:5px 12px 6px;line-height:1.25}
+.dist i{display:block;font-style:normal;font-size:8.5px;letter-spacing:.06em;color:#d9bd6a;font-weight:700}
+.dist b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
+.dist span{font-size:9px;letter-spacing:.04em;color:#d8c08a}
+.badges{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 10px}
+.bg{font-size:10.5px;font-weight:800;border-radius:6px;padding:2.5px 8px;background:var(--chip);color:#5c5344;letter-spacing:.04em}
+.bg.fl{background:var(--ink);color:#f0e8d8}
+.bg.ok{background:#e2f1e8;color:var(--ok)}
+.bg.lt{background:#ece8f4;color:var(--lt)}
+.bg.cn{background:#fbe9e6;color:var(--warn)}
+.kv{display:grid;grid-template-columns:80px 1fr;gap:3px 12px;font-size:13.5px;margin:0}
+.kv dt{color:var(--sub);font-size:11px;font-weight:800;padding-top:3px;letter-spacing:.08em}
+.kv dd{margin:0}
+.kv .rent{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.kv .rent small{font-size:11.5px;font-weight:600;color:var(--sub)}
+.acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.acts a{flex:1;min-width:130px;text-align:center;text-decoration:none;font-size:13px;font-weight:800;
+  padding:11px 10px;border-radius:10px;border:1.5px solid var(--ink);color:var(--ink);background:#fff;letter-spacing:.02em}
+.acts a.tel{background:var(--brand);border-color:var(--brand);color:#fff}
+.acts a:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.vtoggle{display:flex;margin:12px 0 6px;width:100%}
+.vbtn{flex:1;border:1.5px solid var(--line);background:#fff;padding:15px 10px;font:inherit;font-size:16px;font-weight:800;color:var(--sub);cursor:pointer;letter-spacing:.04em}
+.vbtn:first-child{border-radius:12px 0 0 12px}.vbtn:last-child{border-radius:0 12px 12px 0;border-left:0}
+.vbtn.on{background:var(--ink);color:#f7f1e0;border-color:var(--ink)}
+#map{height:64vh;min-height:380px;border-radius:16px;border:1px solid var(--line)}
+#mapWrap{margin:12px 0}
+.mapnote{font-size:11.5px;color:var(--sub);margin:8px 2px 0}
+.pinlab{background:transparent;border:none;box-shadow:none;color:#fff;font-weight:800;font-size:11px;font-family:inherit}
+.pop{font-family:inherit;min-width:190px}
+.pop b.t{display:block;font-size:13px;margin-bottom:2px}
+.pop .m{font-size:12px;color:#555;margin:0 0 6px}
+.pop .go{display:inline-block;background:var(--brand-d);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;text-decoration:none}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:16px;padding:30px 20px;text-align:center;margin-top:24px}
+.empty b{display:block;font-size:16px;margin-bottom:6px}
+.empty p{margin:0;font-size:13px;color:var(--sub)}
+.foot{margin-top:44px;font-size:11.5px;color:var(--sub);border-top:1px solid var(--line);padding-top:14px;line-height:1.9}
+.hide{display:none}
+
+/* ===== password gate ===== */
+.gate{position:fixed;inset:0;background:rgba(24,18,8,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.gate.on{display:flex}
+.gate .box{background:var(--card);border-radius:18px;padding:26px 24px 22px;max-width:340px;width:100%;box-shadow:0 22px 60px rgba(0,0,0,.4);text-align:center}
+.gate h4{margin:0 0 4px;font-size:16px;letter-spacing:.06em}
+.gate p{margin:0 0 14px;font-size:12.5px;color:var(--sub)}
+.gate input{width:100%;font:inherit;font-size:16px;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;text-align:center;letter-spacing:.1em}
+.gate input:focus{outline:none;border-color:var(--brand)}
+.gate .err{color:var(--warn);font-size:12.5px;min-height:18px;margin:6px 0 4px}
+.gate .row{display:flex;gap:8px;margin-top:4px}
+.gate button{flex:1;font:inherit;font-weight:800;padding:12px;border-radius:10px;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--sub)}
+.gate button.go{background:var(--brand);border-color:var(--brand);color:#fff;letter-spacing:.1em}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="hero"><div class="in">
+  <div class="eyebrow">UMAPRO｜HUNGRY</div>
+  <h1>HUNGRY 出店候補物件情報</h1>
+  <p class="sub"><b>スカイスクレイパー様 運営店舗エリア</b>｜各店舗から<b>半径5km圏内</b>の募集物件を掲載</p>
+</div></div>
+
+<div class="wrap">
+
+<!-- ============ TOP ============ -->
+<div id="top">
+  <p class="lead">スカイスクレイパー様が運営する店舗(カレーハウスCoCo壱番屋・ラーメン大戦争)を基点に、<b>半径5km圏内で募集中の店舗物件</b>を掲載しています。店舗を選ぶと周辺の物件一覧とマップが見られます。</p>
+
+  <div class="criteria">
+    <h2>掲載条件</h2>
+    <ul>
+      <li><span class="k">対象エリア</span><span>スカイスクレイパー様 運営店舗の<b>半径5km圏内</b></span></li>
+      <li><span class="k">物件種別</span><span>飲食店営業が可能な貸店舗(業態・広さ・賃料の制限なし)</span></li>
+      <li><span class="k">距離表示</span><span>各物件カードに<b>最寄りの運営店舗と直線距離</b>を表示</span></li>
+    </ul>
+    <p class="note">※ 掲載情報は各不動産サイトの募集情報を調査時点で確認したものです。位置は住所(丁目)からの概算です。<br>※ 本サイトはうまプロ 事業開発による調査資料であり、店舗運営会社・ブランド本部の公式情報ではありません。</p>
+  </div>
+
+  <div id="regions"></div>
+
+  <p class="foot">運営：うまプロ 事業開発</p>
+</div>
+
+<!-- ============ STORE PAGE ============ -->
+<div id="store" class="hide">
+  <p class="crumb"><a href="#" id="back">← 店舗選択にもどる</a></p>
+  <h2 class="pref" id="storeName"></h2>
+  <p class="meta" id="storeMeta"></p>
+  <div class="vtoggle" id="vtoggle" style="display:none">
+    <button class="vbtn on" data-v="list">📋 リスト表示</button>
+    <button class="vbtn" data-v="map">🗾 マップ表示</button>
+  </div>
+  <div id="mapWrap" class="hide"><div id="map"></div><p class="mapnote">★は運営店舗、円は半径5km。数字ピンは物件(タップで詳細)。位置は住所(丁目)からの概算です。</p></div>
+  <div id="storeBody"></div>
+  <p class="foot">掲載情報は調査時点の各サイト募集情報です。申込前に必ず掲載元へ最新状況をご確認ください。</p>
+</div>
+
+</div>
+
+<!-- password gate -->
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="box">
+    <h4 id="gateTitle">パスワードを入力</h4>
+    <p>物件情報の閲覧にはパスワードが必要です。</p>
+    <input type="password" id="pw" autocomplete="off" placeholder="パスワード" aria-label="パスワード">
+    <div class="err" id="pwErr"></div>
+    <div class="row">
+      <button type="button" id="pwCancel">キャンセル</button>
+      <button type="button" class="go" id="pwGo">ひらく</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PASS = "hungry";   // ← 配布パスワード
+
+let DATA = {stores:[], items:[]};
+const NEW_DAYS = 3, EXPIRE_DAYS = 30;
+function daysSince(d){ return (Date.now() - new Date(d+'T00:00:00+09:00').getTime()) / 86400000; }
+async function loadData(){
+  const r = await fetch('data.json?nc=' + Date.now(), {cache:'no-store'});
+  const j = await r.json();
+  DATA.stores = j.stores || [];
+  DATA.items = (j.items||[]).filter(x=>!x.ad || daysSince(x.ad) <= EXPIRE_DAYS);
+}
+const $=s=>document.querySelector(s);
+function esc(t){const d=document.createElement('div');d.textContent=t??'';return d.innerHTML;}
+function itemsOf(storeId){ return DATA.items.filter(x=>(x.near||[]).includes(storeId)); }
+
+/* ============ トップ: 県ごとの店舗グリッド ============ */
+function renderTop(){
+  const prefs = [...new Set(DATA.stores.map(s=>s.pref))];
+  const box=$('#regions');
+  box.innerHTML = prefs.map(p=>{
+    const stores = DATA.stores.filter(s=>s.pref===p);
+    return `<div class="region"><h3>${esc(p)}</h3><div class="sgrid">`+
+      stores.map(s=>{
+        const n = itemsOf(s.id).length;
+        return `<button class="sbtn${n?' has':''}" data-s="${s.id}">`+
+          `<span class="bd${s.brand==='ラーメン大戦争'?' rm':''}">${s.brand==='ラーメン大戦争'?'ラ':'CoCo'}</span>${esc(s.name)}`+
+          `<span class="cnt">${n? n+'件掲載':'該当なし'}</span></button>`;
+      }).join('')+`</div></div>`;
+  }).join('') || '<div class="empty"><b>店舗データを準備中です</b></div>';
+  box.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>requestStore(b.dataset.s)));
+}
+
+const FOODBG={ok:'<span class="bg ok">重飲食可</span>',lt:'<span class="bg lt">軽飲食向き</span>',cn:'<span class="bg cn">飲食条件 要確認</span>'};
+function floorBadge(sec){return {f1:"1階 路面",f2:"2階",b1:"地下1階",f3:"3階以上"}[sec]||'';}
+
+function renderStore(id){
+  const s = DATA.stores.find(x=>x.id===id); if(!s) return;
+  $('#top').classList.add('hide'); $('#store').classList.remove('hide');
+  $('#storeName').textContent = s.name;
+  const items = itemsOf(id).sort((a,b)=>(a.dist?.[id]??99)-(b.dist?.[id]??99));
+  $('#storeMeta').textContent = `${s.brand}／${s.a}／半径5km圏内 ${items.length}件`;
+  const body=$('#storeBody');
+  if(!items.length){
+    $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
+    body.innerHTML=`<div class="empty"><b>現在この店舗の5km圏内に掲載物件はありません</b><p>調査で見つかり次第追加します。</p></div>`;
+    buildMap(s, []); window.scrollTo(0,0); return;
+  }
+  body.innerHTML = `<div class="cards">`+items.map(x=>{
+    const cid='ck'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.round((x.dist?.[id]||0)*100));
+    const links=(x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
+    const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
+    const km=x.dist?.[id];
+    return `<div class="card" id="${cid}">
+      <div class="ctop"><h4>${(x.ad && daysSince(x.ad)<=NEW_DAYS)?`<span class="bg cn">NEW</span> `:``}${esc(x.n)}</h4>
+        <div class="dist"><i>店舗から</i><b>${km!=null?km.toFixed(1):'—'}<span>km</span></b></div></div>
+      <div class="badges">${x.s?`<span class="bg fl">${floorBadge(x.s)}</span>`:''}${FOODBG[x.f]||''}${x.c?`<span class="bg">${esc(x.c)}</span>`:''}</div>
+      <dl class="kv">
+        <dt>賃料</dt><dd class="rent">${esc(x.r)} <small>${esc(x.rs||'')}</small></dd>
+        ${x.t?`<dt>広さ</dt><dd>${esc(x.t)}${x.tk?`　<b>坪単価 ${esc(x.tk)}</b><small>（込み目安）</small>`:''}</dd>`:''}
+        ${x.s?`<dt>階数</dt><dd><b>${floorBadge(x.s)}</b></dd>`:''}
+        <dt>所在地</dt><dd>${esc(x.a)}${x.st?`（${esc(x.st)}）`:''}</dd>
+        ${x.d?`<dt>敷金等</dt><dd>${esc(x.d)}</dd>`:''}
+        ${x.fn?`<dt>備考</dt><dd>${esc(x.fn)}</dd>`:''}
+        ${!x.tel?`<dt>問合せ</dt><dd>掲載サイト経由（無料会員登録で会社名・番地開示）</dd>`:''}
+      </dl>
+      <div class="acts">${tel}${links}</div>
+    </div>`;}).join('')+`</div>`;
+  buildMap(s, items);
+  setView('list');
+  window.scrollTo(0,0);
+}
+
+/* ============ password gate ============ */
+let pendingStore=null;
+function requestStore(id){
+  if(sessionStorage.getItem('ck_auth')==='1'){ renderStore(id); return; }
+  pendingStore=id; $('#pwErr').textContent=''; $('#pw').value='';
+  $('#gate').classList.add('on'); setTimeout(()=>$('#pw').focus(),50);
+}
+function tryPass(){
+  if($('#pw').value===PASS){
+    sessionStorage.setItem('ck_auth','1');
+    $('#gate').classList.remove('on');
+    if(pendingStore) renderStore(pendingStore);
+  }else{
+    $('#pwErr').textContent='パスワードが違います。';
+    $('#pw').select();
+  }
+}
+$('#pwGo').addEventListener('click',tryPass);
+$('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryPass();});
+$('#pwCancel').addEventListener('click',()=>{$('#gate').classList.remove('on');pendingStore=null;});
+$('#back').addEventListener('click',e=>{e.preventDefault();$('#store').classList.add('hide');$('#top').classList.remove('hide');window.scrollTo(0,0);});
+
+/* ============ マップ ============ */
+let mapObj=null;
+const FLCOLOR={f1:'#c8a013',f2:'#8f6f00',b1:'#5d6672',f3:'#8a8378'};
+function setView(v){
+  document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#mapWrap').classList.toggle('hide',v!=='map');
+  $('#storeBody').classList.toggle('hide',v==='map');
+  if(v==='map'&&mapObj){setTimeout(()=>{mapObj.invalidateSize();if(window.__bounds)mapObj.fitBounds(window.__bounds,{padding:[30,30]});},80);}
+}
+document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
+window.__jumpCard=(id)=>{setView('list');setTimeout(()=>{const el=document.getElementById(id);
+  if(el){el.scrollIntoView({block:'center'});el.style.outline='3px solid #c8a013';setTimeout(()=>el.style.outline='',2200);}},80);};
+function buildMap(store, items){
+  const ok=(typeof L!=='undefined') && store.ll;
+  $('#vtoggle').style.display=ok?'flex':'none';
+  if(!ok){$('#mapWrap').classList.add('hide');return;}
+  if(mapObj){mapObj.remove();mapObj=null;}
+  mapObj=L.map('map',{scrollWheelZoom:false});
+  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,
+    attribution:'地図: <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'}).addTo(mapObj);
+  // 5km圏
+  const circle = L.circle(store.ll,{radius:5000,color:'#c8a013',weight:2,fillColor:'#c8a013',fillOpacity:.06}).addTo(mapObj);
+  // 店舗マーカー
+  const sm=L.circleMarker(store.ll,{radius:13,color:'#fff',weight:3,fillColor:'#b5651d',fillOpacity:1}).addTo(mapObj);
+  sm.bindTooltip('★',{permanent:true,direction:'center',className:'pinlab'});
+  sm.bindPopup(`<div class="pop"><b class="t">${esc(store.name)}</b><p class="m">${esc(store.brand)}<br>${esc(store.a)}</p></div>`);
+  items.filter(x=>x.ll).forEach(x=>{
+    const c=FLCOLOR[x.s]||'#c8a013';
+    const mk=L.circleMarker(x.ll,{radius:14,color:'#fff',weight:3,fillColor:c,fillOpacity:.96}).addTo(mapObj);
+    const km=x.dist?.[store.id];
+    mk.bindTooltip(km!=null?km.toFixed(1):'…',{permanent:true,direction:'center',className:'pinlab'});
+    const cid='ck'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.round((km||0)*100));
+    mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
+      `<p class="m">店舗から${km!=null?km.toFixed(1):'—'}km｜${floorBadge(x.s)}<br>${esc(x.t||'')}／${esc(x.r||'')}<br>${esc(x.a)}</p>`+
+      `<a class="go" href="javascript:__jumpCard('${cid}')">リストで詳細を見る</a></div>`);
+  });
+  window.__bounds = circle.getBounds();
+  mapObj.fitBounds(window.__bounds,{padding:[30,30]});
+}
+
+loadData().then(()=>renderTop()).catch(e=>{document.getElementById("regions").innerHTML="<p style=\"color:#a5372c\">データの読み込みに失敗しました。再読み込みしてください。</p>";});
+</script>
