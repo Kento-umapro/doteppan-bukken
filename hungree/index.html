@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>HUNGRY 出店候補物件情報</title>
+<title>HUNGREE 出店候補物件情報</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -68,6 +68,10 @@ h2.pref{margin:2px 0 4px;font-size:22px;font-weight:800;letter-spacing:.04em}
 .bg.ok{background:#e2f1e8;color:var(--ok)}
 .bg.lt{background:#ece8f4;color:var(--lt)}
 .bg.cn{background:#fbe9e6;color:var(--warn)}
+.bg.rbA{background:#e2f1e8;color:#1e7a4d}
+.bg.rbB{background:#eef3e2;color:#5c6e1e}
+.bg.rbC{background:#fdf1dc;color:#9a6a12}
+.bg.rbD{background:#fbe9e6;color:#b23a2f}
 .kv{display:grid;grid-template-columns:80px 1fr;gap:3px 12px;font-size:13.5px;margin:0}
 .kv dt{color:var(--sub);font-size:11px;font-weight:800;padding-top:3px;letter-spacing:.08em}
 .kv dd{margin:0}
@@ -112,8 +116,8 @@ h2.pref{margin:2px 0 4px;font-size:22px;font-weight:800;letter-spacing:.04em}
 </style>
 
 <div class="hero"><div class="in">
-  <div class="eyebrow">UMAPRO｜HUNGRY</div>
-  <h1>HUNGRY 出店候補物件情報</h1>
+  <div class="eyebrow">UMAPRO｜HUNGREE</div>
+  <h1>HUNGREE 出店候補物件情報</h1>
   <p class="sub"><b>スカイスクレイパー様 運営店舗エリア</b>｜各店舗から<b>半径5km圏内</b>の募集物件を掲載</p>
 </div></div>
 
@@ -129,6 +133,7 @@ h2.pref{margin:2px 0 4px;font-size:22px;font-weight:800;letter-spacing:.04em}
       <li><span class="k">対象エリア</span><span>スカイスクレイパー様 運営店舗の<b>半径5km圏内</b></span></li>
       <li><span class="k">物件種別</span><span>飲食店営業が可能な貸店舗(業態・広さ・賃料の制限なし)</span></li>
       <li><span class="k">距離表示</span><span>各物件カードに<b>最寄りの運営店舗と直線距離</b>を表示</span></li>
+      <li><span class="k">家賃負担</span><span>坪単価による評価 <b>A</b>(1.2万円以下)／<b>B</b>(1.8万円以下)／<b>C</b>(2.5万円以下)／<b>D</b>(2.5万円超)。家賃比率が採算を圧迫しやすい高坪単価(特に東京都心)は低評価</span></li>
     </ul>
     <p class="note">※ 掲載情報は各不動産サイトの募集情報を調査時点で確認したものです。位置は住所(丁目)からの概算です。<br>※ 本サイトはうまプロ 事業開発による調査資料であり、店舗運営会社・ブランド本部の公式情報ではありません。</p>
   </div>
@@ -169,7 +174,7 @@ h2.pref{margin:2px 0 4px;font-size:22px;font-weight:800;letter-spacing:.04em}
 </div>
 
 <script>
-const PASS = "hungry";   // ← 配布パスワード
+const PASS = "hungree";   // ← 配布パスワード
 
 let DATA = {stores:[], items:[]};
 const NEW_DAYS = 3, EXPIRE_DAYS = 30;
@@ -224,7 +229,7 @@ function renderStore(id){
     return `<div class="card" id="${cid}">
       <div class="ctop"><h4>${(x.ad && daysSince(x.ad)<=NEW_DAYS)?`<span class="bg cn">NEW</span> `:``}${esc(x.n)}</h4>
         <div class="dist"><i>店舗から</i><b>${km!=null?km.toFixed(1):'—'}<span>km</span></b></div></div>
-      <div class="badges">${x.s?`<span class="bg fl">${floorBadge(x.s)}</span>`:''}${FOODBG[x.f]||''}${x.c?`<span class="bg">${esc(x.c)}</span>`:''}</div>
+      <div class="badges">${x.rb?`<span class="bg rb${x.rb}">家賃負担 ${x.rb}</span>`:''}${x.s?`<span class="bg fl">${floorBadge(x.s)}</span>`:''}${FOODBG[x.f]||''}${x.c?`<span class="bg">${esc(x.c)}</span>`:''}</div>
       <dl class="kv">
         <dt>賃料</dt><dd class="rent">${esc(x.r)} <small>${esc(x.rs||'')}</small></dd>
         ${x.t?`<dt>広さ</dt><dd>${esc(x.t)}${x.tk?`　<b>坪単価 ${esc(x.tk)}</b><small>（込み目安）</small>`:''}</dd>`:''}
@@ -296,7 +301,7 @@ function buildMap(store, items){
     mk.bindTooltip(km!=null?km.toFixed(1):'…',{permanent:true,direction:'center',className:'pinlab'});
     const cid='ck'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.round((km||0)*100));
     mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
-      `<p class="m">店舗から${km!=null?km.toFixed(1):'—'}km｜${floorBadge(x.s)}<br>${esc(x.t||'')}／${esc(x.r||'')}<br>${esc(x.a)}</p>`+
+      `<p class="m">店舗から${km!=null?km.toFixed(1):'—'}km｜${x.rb?`家賃負担${x.rb}｜`:''}${floorBadge(x.s)}<br>${esc(x.t||'')}／${esc(x.r||'')}<br>${esc(x.a)}</p>`+
       `<a class="go" href="javascript:__jumpCard('${cid}')">リストで詳細を見る</a></div>`);
   });
   window.__bounds = circle.getBounds();

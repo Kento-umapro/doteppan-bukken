@@ -114,7 +114,11 @@ async function judge(p) {
     search: p.search || 0, hire: p.hire || 'C',
   };
   const scores = computeScores(inp);
-  const total = computeTotal(scores, 'どてっぱん');
+  let total = computeTotal(scores, 'どてっぱん');
+  // 高家賃エリア補正(2026-08-06導入): 東京都は家賃水準が高く採算リスクが大きいため保守的に減点
+  const AREA_ADJUST = [{ match: /^東京都/, pt: -2.0, label: '東京都補正' }];
+  const adj = AREA_ADJUST.find(a => a.match.test(p.address));
+  if (adj) total += adj.pt;
   const rank = deriveRank(total);
 
   // 類似3店舗(画面と同じ: 総合スコア差の小さい既存店)から利益レンジ
@@ -125,6 +129,7 @@ async function judge(p) {
     name: p.name, address: p.address, geocoded: geo.formattedAddress,
     ll: [Math.round(lat * 1e4) / 1e4, Math.round(lng * 1e4) / 1e4], // data.jsonのピン座標更新用
     sc: Math.round(total * 10) / 10, rank,
+    areaAdjust: adj ? `${adj.label} ${adj.pt}` : null,
     scores: Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, Math.round(v * 10) / 10])),
     counts,
     competitors: establishments.filter(e => e.category !== 'excluded').map(e => `${e.category === 'direct' ? '🍳' : e.category === 'synergy' ? '🍺' : '🍜'}${e.name}(口コミ${e.ratingCount})`),
