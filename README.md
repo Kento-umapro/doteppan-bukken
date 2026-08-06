@@ -43,13 +43,22 @@ GitHub Pages: https://kento-umapro.github.io/doteppan-bukken/
 **同一のAPI・同一の計算式**で自動査定するCLI。計算エンジンは `index.html` から実行時に抽出する
 ため、ツール本体を更新すればCLIも自動で追従する。
 
+**判定待ちの一括処理は3ステップ（リポジトリのルートで実行）:**
+
 ```bash
-cd tools/scoreing
-DVS_URL=https://<ツールのURL> DVS_TOKEN=<ACCESS_TOKEN> node score-cli.js premium5.json
-# → 各物件の偏差値・ランク・競合内訳を表示し premium5.result.json に保存
+# 1. 判定待ち(scなし)全件を抽出して入力JSONを生成
+python3 tools/scoreing/make-pending.py
+#    → tools/scoreing/pending.json の pop500(500m総人口・必須)・search・hire を
+#      商圏の概算値で埋める(target2049 空欄時は pop500×44% で自動推定)
+
+# 2. 自動判定(Google競合データ取得・東京都補正込み)
+DVS_URL=https://<ツールのURL> DVS_TOKEN=<ACCESS_TOKEN> node tools/scoreing/score-cli.js tools/scoreing/pending.json
+
+# 3. 結果を data.json に反映(50以上=掲載・ll更新 / 50未満=削除+HUNGREE退避) + HUNGREE再生成
+python3 tools/scoreing/apply-results.py tools/scoreing/pending.result.json
 ```
 
-入力JSONの形式は `premium5.json` を参照（住所・坪数・賃料・階数・500m人口等）。
+単発判定の入力例は `premium5.json` を参照。
 
 **【正式手順】判定待ち物件（標準・上級とも）は必ずこのCLIで自動判定すること。**
 巡回・判定セッションは判定待ちを追加したら、CLIで判定して sc/rk/pr を付与し、
