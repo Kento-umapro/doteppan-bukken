@@ -44,12 +44,20 @@ src = json.load(open(os.path.join(BASE, '..', 'data.json')))
 extra_path = os.path.join(BASE, 'extra.json')
 extra = json.load(open(extra_path)) if os.path.exists(extra_path) else []
 
+# found.json: HUNGREE専用巡回の収集先。crawl-areas.json の各店舗5km圏エリアで見つけた
+# 飲食可の貸店舗を、どてっぱんの基準(坪数・坪単価)に関係なくここへ追加する。
+# 形式は親data.jsonのitemsと同じ(n/a/ll/t/r/rs/tk/s/f/c/d/u/ad)。ll必須。
+found_path = os.path.join(BASE, 'found.json')
+found = json.load(open(found_path)) if os.path.exists(found_path) else []
+
 def all_items():
     for tier in ['prefs', 'premium']:
         for pref, v in src.get(tier, {}).items():
             for x in v['items']:
                 yield x
     for x in extra:
+        yield x
+    for x in found:
         yield x
 
 items, seen = [], set()

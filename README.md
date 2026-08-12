@@ -73,3 +73,15 @@ python3 tools/scoreing/apply-results.py tools/scoreing/pending.result.json
    見つからない場合は Google Maps で目視カウントして手動入力する。
 3. 数値が入ってから「スコア判定」を押す。
 4. これを**全物件**で実施する。自動取得（または目視カウント入力）を省略した判定は無効とし、やり直すこと。
+
+## HUNGREE（スカイスクレイパー店舗5km圏サイト）
+
+`/hungree/` はスカイスクレイパー社運営29店舗（ココイチ27・ラーメン大戦争2）の
+**半径5km圏内**の募集物件を掲載する独立サイト。掲載条件は5km圏内のみ（坪数・賃料の制限なし）。
+
+- `stores.json` — 店舗マスタ（座標付き）
+- `crawl-areas.json` — 各店舗の5km圏がかかる市区町村リスト（巡回対象エリア）
+- `found.json` — HUNGREE専用巡回の収集先。crawl-areasのエリアで見つけた飲食可貸店舗を
+  どてっぱん基準に関係なく追加する（形式は親data.jsonのitemsと同じ・ll必須・URL重複排除・30日超は除去）
+- `extra.json` — どてっぱん側で削除された5km圏内物件の退避先
+- `build.py` — 親data.json + found + extra から data.json を再生成（巡回・判定後に毎回実行）
