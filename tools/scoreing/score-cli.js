@@ -27,10 +27,12 @@ const vm = require('vm');
 
 const DVS_URL = (process.env.DVS_URL || '').replace(/\/+$/, '');
 const DVS_TOKEN = process.env.DVS_TOKEN || '';
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || ''; // 設定時はDVS不要でGoogleを直接利用
 const inputPath = process.argv[2];
 
-if (!DVS_URL || !inputPath) {
-  console.error('使い方: DVS_URL=https://<ツールURL> DVS_TOKEN=<ACCESS_TOKEN> node score-cli.js <入力JSON>');
+if ((!DVS_URL && !GOOGLE_API_KEY) || !inputPath) {
+  console.error('使い方: GOOGLE_API_KEY=<キー> node score-cli.js <入力JSON>');
+  console.error('   または DVS_URL=https://<ツールURL> DVS_TOKEN=<ACCESS_TOKEN> node score-cli.js <入力JSON>');
   process.exit(1);
 }
 
@@ -98,10 +100,49 @@ function aggregate(places) {
   return { establishments, counts };
 }
 
+// ---- Google API 直接モード(GOOGLE_API_KEY設定時。DVSサーバーと同じ内容を直接取得) ----
+const G_TYPES = ['restaurant', 'bar', 'cafe', 'fast_food_restaurant', 'japanese_restaurant',
+  'sushi_restaurant', 'ramen_restaurant', 'italian_restaurant', 'chinese_restaurant',
+  'korean_restaurant', 'thai_restaurant', 'vietnamese_restaurant', 'mexican_restaurant',
+  'french_restaurant', 'indian_restaurant', 'barbecue_restaurant', 'steak_house',
+  'pizza_restaurant', 'hamburger_restaurant', 'brunch_restaurant', 'breakfast_restaurant',
+  'pub', 'wine_bar', 'meal_takeaway'];
+async function gpost(url, mask, data) {
+  for (let a = 0; a < 3; a++) {
+    try {
+      const r = await fetch(url, { method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_API_KEY, 'X-Goog-FieldMask': mask },
+        body: JSON.stringify(data) });
+      if (r.status === 429) { await new Promise(res => setTimeout(res, 2000 * (a + 1))); continue; }
+      return await r.json();
+    } catch (e) { await new Promise(res => setTimeout(res, 1500 * (a + 1))); }
+  }
+  return {};
+}
+async function googleGeocode(address) {
+  const j = await gpost('https://places.googleapis.com/v1/places:searchText',
+    'places.location,places.formattedAddress',
+    { textQuery: address, languageCode: 'ja', regionCode: 'JP', maxResultCount: 1 });
+  const p = j.places && j.places[0];
+  if (!p) throw new Error('geocode失敗: ' + address);
+  return { lat: p.location.latitude, lng: p.location.longitude, formattedAddress: p.formattedAddress };
+}
+async function googleNearby(lat, lng, radius) {
+  const j = await gpost('https://places.googleapis.com/v1/places:searchNearby',
+    'places.displayName,places.primaryType,places.primaryTypeDisplayName,places.types,places.userRatingCount',
+    { includedTypes: G_TYPES, maxResultCount: 20, languageCode: 'ja', regionCode: 'JP',
+      locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius } } });
+  return { places: (j.places || []).map(p => ({ name: p.displayName?.text || '',
+    primaryType: p.primaryType, primaryTypeDisplayName: p.primaryTypeDisplayName?.text || '',
+    types: p.types || [], ratingCount: p.userRatingCount || 0 })) };
+}
+
 async function judge(p) {
-  const geo = await api('/api/places/geocode', { address: p.address });
+  const geo = GOOGLE_API_KEY ? await googleGeocode(p.address)
+    : await api('/api/places/geocode', { address: p.address });
   const lat = geo.lat, lng = geo.lng;
-  const nearby = await api('/api/places/nearby', { lat, lng, radius: p.radius || 100, withDetails: true });
+  const nearby = GOOGLE_API_KEY ? await googleNearby(lat, lng, p.radius || 100)
+    : await api('/api/places/nearby', { lat, lng, radius: p.radius || 100, withDetails: true });
   const { establishments, counts } = aggregate(nearby.places || []);
 
   const inp = {

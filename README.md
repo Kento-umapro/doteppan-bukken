@@ -52,7 +52,9 @@ python3 tools/scoreing/make-pending.py
 #      商圏の概算値で埋める(target2049 空欄時は pop500×44% で自動推定)
 
 # 2. 自動判定(Google競合データ取得・東京都補正込み)
-DVS_URL=https://<ツールのURL> DVS_TOKEN=<ACCESS_TOKEN> node tools/scoreing/score-cli.js tools/scoreing/pending.json
+GOOGLE_API_KEY=<GoogleのAPIキー> node tools/scoreing/score-cli.js tools/scoreing/pending.json
+#   (キーはルーチンの指示文など非公開の場所から渡す。リポジトリに書かないこと)
+#   旧方式: DVS_URL=... DVS_TOKEN=... でも可(判定ツールサーバー経由)
 
 # 3. 結果を data.json に反映(50以上=掲載・ll更新 / 50未満=削除+HUNGREE退避) + HUNGREE再生成
 python3 tools/scoreing/apply-results.py tools/scoreing/pending.result.json
