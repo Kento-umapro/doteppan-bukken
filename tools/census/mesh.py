@@ -88,18 +88,40 @@ class MeshPop:
         self.pts.sort()
         self.lats = [p[0] for p in self.pts]
 
+    # 500mメッシュの半辺(緯度方向 15秒≒0.231km、経度方向 22.5秒≒緯度により変動)
+    _HALF_LAT_KM = 15 / 3600 * 111.0
+
     def circle(self, lat, lng, radius_km):
-        """(lat,lng)中心・半径radius_km圏の (総人口, 就業年齢人口) を返す"""
-        dlat = radius_km / 111.0
+        """(lat,lng)中心・半径radius_km圏の (総人口, 就業年齢人口) を面積按分で返す。
+
+        各メッシュを 4×4 の小区画に分け、円内に入る小区画の割合で人口を按分する。
+        500m圏(メッシュ数が少ない)でも境界の取りこぼし・拾いすぎを抑える。
+        """
+        cl = math.cos(math.radians(lat))
+        half_lng_km = 22.5 / 3600 * 111.0 * cl
+        margin = radius_km + self._HALF_LAT_KM * 1.5
+        dlat = margin / 111.0
         i0 = bisect.bisect_left(self.lats, lat - dlat)
         i1 = bisect.bisect_right(self.lats, lat + dlat)
-        cl = math.cos(math.radians(lat))
+        r2 = radius_km * radius_km
         tot = age = 0.0
+        offs = [-0.375, -0.125, 0.125, 0.375]   # 4×4分割の各小区画中心(半辺比)
         for la, lo, t, ag in self.pts[i0:i1]:
-            dx = (lo - lng) * 111.0 * cl
-            dy = (la - lat) * 111.0
-            if dx * dx + dy * dy <= radius_km * radius_km:
-                tot += t; age += ag
+            dyc = (la - lat) * 111.0
+            dxc = (lo - lng) * 111.0 * cl
+            # 粗い早期棄却
+            if abs(dyc) - self._HALF_LAT_KM > radius_km and abs(dxc) - half_lng_km > radius_km:
+                continue
+            inside = 0
+            for oy in offs:
+                dy = dyc + oy * 2 * self._HALF_LAT_KM
+                for ox in offs:
+                    dx = dxc + ox * 2 * half_lng_km
+                    if dx * dx + dy * dy <= r2:
+                        inside += 1
+            if inside:
+                frac = inside / 16.0
+                tot += t * frac; age += ag * frac
         return round(tot), round(age)
 
     def trade_area(self, lat, lng):
