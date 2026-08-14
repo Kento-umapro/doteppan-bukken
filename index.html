@@ -115,6 +115,11 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 .sc b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
 .sc span{font-size:9.5px;letter-spacing:.08em;color:#d8b98a}
 .badges{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 10px}
+.bg.pm{font-weight:800}
+.bg.pmA{background:#e2f1e8;color:#1e7a4d}
+.bg.pmB{background:#fdf1dc;color:#9a6a12}
+.bg.pmC{background:#fbe9e6;color:#b23a2f}
+.pmv{color:#1e7a4d}
 .bg{font-size:10.5px;font-weight:800;border-radius:6px;padding:2.5px 8px;background:var(--chip);color:#5c5344;letter-spacing:.04em}
 .bg.fl{background:var(--ink);color:#f0e8d8}
 .bg.ok{background:#e2f1e8;color:var(--ok)}
@@ -338,8 +343,9 @@ function renderPref(p){
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
         return `<div class="card" id="${cid}">
           <div class="ctop"><h4>${(x.ad && daysSince(x.ad)<=NEW_DAYS)?`<span class="newchip">NEW</span>`:``}${esc(x.n)}</h4>${x.sc?`<div class="sc"><i>出店偏差値</i><b>${x.sc}</b><span>ランク${esc(x.rk)}</span></div>`:`<div class="sc scwait"><i>出店偏差値</i><b>—</b><span>判定待ち</span></div>`}</div>
-          <div class="badges"><span class="bg fl">${floorBadge(x.s)}</span>${FOODBG[x.f]||''}<span class="bg">${esc(x.c)}</span></div>
+          <div class="badges">${x.pm?`<span class="bg pm ${x.pm>=10?'pmA':x.pm>=7?'pmB':'pmC'}">予測 家賃${x.pm}倍${x.pm>=10?'・狙い目':''}</span>`:''}<span class="bg fl">${floorBadge(x.s)}</span>${FOODBG[x.f]||''}<span class="bg">${esc(x.c)}</span></div>
           <dl class="kv">
+            ${x.pm?`<dt>予測収益</dt><dd><b class="pmv">月商 約${x.prv}万円 ＝ 家賃の${x.pm}倍</b><small>（AI予測。国勢調査の商圏人口＋周辺競合から算出。10倍以上が出店の目安）</small></dd>`:''}
             <dt>賃料</dt><dd class="rent">${esc(x.r)} <small>${esc(x.rs||'')}</small></dd>
             <dt>広さ</dt><dd>${esc(x.t)}${x.tk?`　<b>坪単価 ${esc(x.tk)}</b><small>（込み目安）</small>`:''}</dd>
             <dt>階数</dt><dd><b>${floorBadge(x.s)}</b></dd>
