@@ -38,16 +38,23 @@ def parse_list(html):
                          price=g('price'), tsubo=g('tsubo_val')))
     return rows
 
+def _shozaikai(html):
+    """物件詳細の「所在階」欄(区画の階)を返す。'1階' / '3階' / '1-2階' / '地下1階' 等。"""
+    t = re.sub(r'\s+', '', re.sub(r'<[^>]+>', ' ', html))
+    m = re.search(r'所在階([^ ]{0,2}[BbＢ地下0-9０-９]{0,2}[-〜~]?[0-9０-９]{0,2}[階FＦ])', t)
+    return m.group(1) if m else ''
+
 def floor_code_from_detail(html):
-    m = re.search(r'(地下\s*\d+\s*階|B\s*\d\s*F|\d+\s*階|\d+\s*F)', html)
-    if not m:
-        return 'f1'
-    f = m.group(1)
-    if 'B' in f or '地下' in f:
+    """所在階を最優先で判定。重飲食は1階が現実的なので階の識別を正確に行う。"""
+    f = _shozaikai(html)
+    if not f:  # 所在階が無ければ建物内の最初の階表記でフォールバック
+        m = re.search(r'(地下\s*\d+\s*階|B\s*\d\s*F|\d+\s*階|\d+\s*F)', html)
+        f = m.group(1) if m else '1階'
+    if 'B' in f or 'Ｂ' in f or '地下' in f:
         return 'b1'
-    if re.search(r'(^|[^0-9])1\s*(階|F)', f):
-        return 'f1'
-    if re.search(r'2\s*(階|F)', f):
+    if re.search(r'(^|[^0-9０-９])[1１]\s*[階FＦ]', f) or f.startswith('1') or f.startswith('１'):
+        return 'f1'          # 1階 / 1-2階 など、1階を含むもの＝路面
+    if re.search(r'[2２]\s*[階FＦ]', f):
         return 'f2'
     return 'f3'
 

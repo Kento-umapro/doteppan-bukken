@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 tools/crawl/candidates*.json
 tools/crawl/latest.csv
+tools/crawl/*.log

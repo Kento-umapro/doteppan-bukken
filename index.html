@@ -276,15 +276,17 @@ function esc(t){const d=document.createElement('div');d.textContent=t;return d.i
 function renderTop(){
   const D=tierData();
   const box=$('#regions');
-  box.innerHTML=REGIONS.map(([rn,ps])=>
-    `<div class="region"><h3>${rn}</h3><div class="pgrid">`+
-    ps.map(p=>{
+  // 掲載のある県だけ表示（0件の県・県のない地方は非表示にして「該当なし」の羅列を防ぐ）
+  box.innerHTML=REGIONS.map(([rn,ps])=>{
+    const btns = ps.filter(p=>{const h=D[p];return h && h.items.length;}).map(p=>{
       const has=D[p];
-      const nn = has? has.items.filter(x=>x.ad && daysSince(x.ad) <= NEW_DAYS).length : 0;
+      const nn = has.items.filter(x=>x.ad && daysSince(x.ad) <= NEW_DAYS).length;
       const badge = nn? `<span class="nbadge">新着${nn}件</span>` : '';
-      return `<button class="pbtn${has?' has':''}" data-p="${p}">${badge}${p}`+
-        `<span class="cnt">${has? (has.items.length? has.items.length+'件掲載':'該当なし'):'調査準備中'}</span></button>`;
-    }).join('')+`</div></div>`).join('');
+      return `<button class="pbtn has" data-p="${p}">${badge}${p}`+
+        `<span class="cnt">${has.items.length}件掲載</span></button>`;
+    }).join('');
+    return btns ? `<div class="region"><h3>${rn}</h3><div class="pgrid">${btns}</div></div>` : '';
+  }).join('');
   box.querySelectorAll('.pbtn').forEach(b=>b.addEventListener('click',()=>requestPref(b.dataset.p)));
 }
 
