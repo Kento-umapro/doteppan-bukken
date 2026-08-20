@@ -56,7 +56,7 @@ async function nearby(ll) {
 
   let added = 0;
   for (const r of cand) {
-    const url = `https://www.temposmart.jp/estates/${r.id}`;
+    const url = r.url || `https://www.temposmart.jp/estates/${r.id}`;
     if (exist.has(url)) continue;
     const pl = await nearby(r.ll);
     const hasC = pl !== null;
@@ -78,10 +78,10 @@ async function nearby(ll) {
     if (!d[tier][pref]) d[tier][pref] = { note: `${pref}／テンポスマート巡回`, items: [] };
     const rentman = r.rent / 10000;
     const fn = [];
-    const item = { ll: r.ll, sc, rk: rank(sc), pm: Math.round(pr / r.rent * 10) / 10, prv: Math.round(pr / 1e4), s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [['テンポスマート', url]], ad: TODAY };
+    const item = { ll: r.ll, sc, rk: rank(sc), pm: Math.round(pr / r.rent * 10) / 10, prv: Math.round(pr / 1e4), s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[r.source==='tshop'?'テナントショップ':'テンポスマート', url]], ad: TODAY };
     if (!hasC) { item.pv = 1; fn.push('競合データ取得待ち・暫定'); }
     if (sc < 50) fn.push('基準やや未満・要現地確認');
-    fn.push('番地はログイン後開示');
+    if (r.source !== 'tshop') fn.push('番地はログイン後開示');
     item.fn = fn.join('／');
     d[tier][pref].items.push(item);
     exist.add(url); added++;
