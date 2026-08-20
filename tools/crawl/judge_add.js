@@ -5,7 +5,8 @@
  *   競合中立=暫定 pv:1 として掲載）
  * - 偏差値(sc)は index.html の計算エンジンで算出（東京都は -2.0pt）
  * - v4予測倍率(pm)= 国勢調査商圏の売上予測 ÷ 家賃（訪日エリア×1.7・競合で微調整）
- * - 掲載下限: 重点エリア(priority=true)は偏差値48、それ以外は50
+ * - 掲載下限(2026-08-20 精度優先に変更): 偏差値50以上 かつ 予測倍率10倍以上 の両方を満たすもののみ
+ *   （巡回は重点エリアを17坪〜で広く拾うが、掲載はこの2条件で厳選する）
  * - 各物件に ad=今日 を付与。掲載30日超は別途 expire で処理。
  *
  * 使い方: GOOGLE_API_KEY=<key> node tools/crawl/judge_add.js <YYYY-MM-DD>
@@ -67,20 +68,20 @@ async function nearby(ll) {
     let total = computeTotal(computeScores(inp), 'どてっぱん');
     if (/^東京都/.test(r.addr)) total -= 2.0;
     const sc = Math.round(total * 10) / 10;
-    const bar = r.priority ? 48 : 50;
-    if (sc < bar) continue;
+    if (sc < 50) continue;                 // 掲載下限: 出店偏差値50以上(既存店平均以上)
     let pred = A + B * r.pop500;
     if ((r.pref === '京都府' || r.pref === '大阪府') && INBOUND_KW.some(k => r.addr.includes(k) || r.title.includes(k))) pred *= INB;
     let pr = pred * r.area;
     const adj = Math.max(0.6, Math.min(1.2, 1 + Math.min(c.synergyW * 0.01, 0.15) - c.directW * 0.03 - c.neutralW * 0.005));
     pr *= adj;
+    const pm = Math.round(pr / r.rent * 10) / 10;
+    if (pm < 10) continue;                 // 掲載下限: 予測倍率10倍以上(採算が明確に見込める狙い目)のみ
     const tier = r.bucket, pref = r.pref;
     if (!d[tier][pref]) d[tier][pref] = { note: `${pref}／テンポスマート巡回`, items: [] };
     const rentman = r.rent / 10000;
     const fn = [];
-    const item = { ll: r.ll, sc, rk: rank(sc), pm: Math.round(pr / r.rent * 10) / 10, prv: Math.round(pr / 1e4), s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[r.source==='tshop'?'テナントショップ':'テンポスマート', url]], ad: TODAY };
+    const item = { ll: r.ll, sc, rk: rank(sc), pm, prv: Math.round(pr / 1e4), s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[r.source==='tshop'?'テナントショップ':'テンポスマート', url]], ad: TODAY };
     if (!hasC) { item.pv = 1; fn.push('競合データ取得待ち・暫定'); }
-    if (sc < 50) fn.push('基準やや未満・要現地確認');
     if (r.source !== 'tshop') fn.push('番地はログイン後開示');
     item.fn = fn.join('／');
     d[tier][pref].items.push(item);
