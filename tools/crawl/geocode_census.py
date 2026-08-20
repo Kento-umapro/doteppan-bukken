@@ -71,7 +71,8 @@ def main():
         r['ll'] = ll
         r['pop500'] = round(pop500)
         r['m1000'] = ta['m1000'][1]
-        r['m2000'] = ta['m2000'][1]
+        r['m2000'] = ta['m2000'][1]              # 2km就業年齢人口(労働者数の代理)
+        r['m2000_total'] = round(ta['m2000'][0])  # 2km総人口
         out.append(r)
     json.dump(out, open(os.path.join(BASE, 'candidates_geo.json'), 'w'), ensure_ascii=False)
     print(f"ジオコーディング成功 {len(out)}/{len(cand)}件")

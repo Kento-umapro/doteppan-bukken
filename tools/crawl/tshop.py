@@ -93,7 +93,7 @@ def main():
                 continue
             rent = int(float(pm.group(1)) * 10000)
             area = float(tm.group(1))
-            if not (17 <= area <= 40):
+            if not (20 <= area <= 40):   # 掲載下限20坪(2026-08-20)
                 continue
             tp = rent / area
             if not (6000 <= tp <= 40000):

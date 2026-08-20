@@ -100,7 +100,7 @@ def main():
             continue
         if r['rent'] <= 0 or r['area'] <= 0:
             continue
-        lo = 17 if r['pref'] in PRIORITY else 23   # 重点エリアは17坪〜
+        lo = 20   # 掲載下限20坪(2026-08-20)。全エリア20〜40坪で収集
         if not (lo <= r['area'] <= 40):
             continue
         tp = r['rent'] / r['area']
