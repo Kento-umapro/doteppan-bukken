@@ -1,7 +1,8 @@
 <meta charset="utf-8">
 <title>どてっぱん 出店物件情報</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- 地図表示専用キー: kento-umapro.github.io ドメインに制限済み（公開ページ用・Places課金キーとは別） -->
+<script>window.__gmapReady=new Promise(r=>{window.__gmapCb=r;});</script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAURwoYZtddjKZq-pxCBSthB_RURNxGkcs&language=ja&region=JP&callback=__gmapCb"></script>
 <style>
 :root{
   --ink:#17130f; --ink2:#2a241d; --sub:#6f665a; --paper:#f6f2ea; --card:#fffdf8;
@@ -421,31 +422,39 @@ function setView(v){
   document.querySelectorAll('.vbtn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('#mapWrap').classList.toggle('hide',v!=='map');
   $('#prefBody').classList.toggle('hide',v==='map');
-  if(v==='map'&&mapObj){setTimeout(()=>{mapObj.invalidateSize();if(window.__pts&&window.__pts.length)mapObj.fitBounds(window.__pts,{padding:[36,36]});},80);}
+  if(v==='map'&&mapObj&&window.google){setTimeout(()=>{google.maps.event.trigger(mapObj,'resize');if(window.__bounds)mapObj.fitBounds(window.__bounds,48);},90);}
 }
 document.querySelectorAll('.vbtn').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
 window.__jumpCard=(id)=>{setView('list');setTimeout(()=>{const el=document.getElementById(id);
   if(el){el.scrollIntoView({block:'center'});el.style.outline='3px solid #c2352a';setTimeout(()=>el.style.outline='',2200);}},80);};
-function buildMap(items){
-  const ok=(typeof L!=='undefined')&&items.some(x=>x.ll);
+async function buildMap(items){
+  const pts=items.filter(x=>x.ll);
+  const ok=pts.length>0;
   $('#vtoggle').style.display=ok?'flex':'none';
   if(!ok){$('#mapWrap').classList.add('hide');return;}
-  if(mapObj){mapObj.remove();mapObj=null;}
-  mapObj=L.map('map',{scrollWheelZoom:false});
-  L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,
-    attribution:'地図: <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'}).addTo(mapObj);
-  const pts=[];
-  items.filter(x=>x.ll).forEach(x=>{
+  await window.__gmapReady;
+  const el=document.getElementById('map');
+  mapObj=new google.maps.Map(el,{mapTypeControl:false,streetViewControl:false,fullscreenControl:true,gestureHandling:'greedy',zoom:14});
+  const bounds=new google.maps.LatLngBounds();
+  const iw=new google.maps.InfoWindow();
+  pts.forEach(x=>{
+    const pos={lat:x.ll[0],lng:x.ll[1]};
     const c=FLCOLOR[x.s]||'#c2352a';
-    const mk=L.circleMarker(x.ll,{radius:17,color:'#fff',weight:3,fillColor:c,fillOpacity:.96}).addTo(mapObj);
-    mk.bindTooltip(x.sc?String(x.sc):'…',{permanent:true,direction:'center',className:'pinlab'});
-    mk.bindPopup(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
-      `<p class="m">${floorBadge(x.s)}｜${x.sc?`出店偏差値 ${x.sc}（ランク${esc(x.rk)}）`:'出店偏差値 判定待ち'}<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>${esc(x.a)}</p>`+
-      `<a class="go" href="javascript:__jumpCard('${cardId(x)}')">リストで詳細を見る</a></div>`);
-    pts.push(x.ll);
+    const mk=new google.maps.Marker({position:pos,map:mapObj,title:x.n,
+      label:{text:x.sc?String(x.sc):'…',color:'#fff',fontWeight:'700',fontSize:'12px'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:16,fillColor:c,fillOpacity:.96,strokeColor:'#fff',strokeWeight:3}});
+    mk.addListener('click',()=>{
+      iw.setContent(`<div class="pop"><b class="t">${esc(x.n)}</b>`+
+        `<p class="m">${floorBadge(x.s)}｜${x.sc?`出店偏差値 ${x.sc}（ランク${esc(x.rk)}）`:'出店偏差値 判定待ち'}<br>${esc(x.t)}／${esc(x.r)}（坪単価${esc(x.tk||'—')}）<br>${esc(x.a)}</p>`+
+        `<a class="go" href="javascript:__jumpCard('${cardId(x)}')">リストで詳細を見る</a></div>`);
+      iw.open(mapObj,mk);
+    });
+    bounds.extend(pos);
   });
-  window.__pts=pts;
-  mapObj.fitBounds(pts,{padding:[36,36]});
+  window.__bounds=bounds;
+  if(pts.length===1){mapObj.setCenter(bounds.getCenter());mapObj.setZoom(16);}
+  else mapObj.fitBounds(bounds,48);
+  if(!$('#mapWrap').classList.contains('hide')) google.maps.event.trigger(mapObj,'resize');
 }
 
 
