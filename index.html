@@ -367,7 +367,7 @@ function renderPref(p){
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
       `<div class="cards">`+items.map(x=>{ const cid='bk'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.floor(x.sc*10));
         const links = x.src==='mail'
-          ? (x.cd?`<a class="share" href="#go=${encodeURIComponent(p)}|${encodeURIComponent(x.cd)}" target="_blank" rel="noopener">🔗 物件ページを開く</a>`:'')
+          ? (x.cd?`<a class="share" href="p.html?code=${encodeURIComponent(x.cd)}" target="_blank" rel="noopener">🔗 物件ページを開く</a>`:'')
           : (x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
         return `<div class="card" id="${cid}" data-cd="${esc(x.cd||'')}">`+`
