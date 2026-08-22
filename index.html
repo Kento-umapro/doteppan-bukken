@@ -138,6 +138,7 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 .acts a{flex:1;min-width:130px;text-align:center;text-decoration:none;font-size:13px;font-weight:800;
   padding:11px 10px;border-radius:10px;border:1.5px solid var(--ink);color:var(--ink);background:#fff;letter-spacing:.02em}
 .acts a.tel{background:var(--red);border-color:var(--red);color:#fff}
+.acts a.share{background:#eef3ee;border-color:#5a7a5a;color:#2f4a2f}
 .acts a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 .vtoggle{display:flex;margin:12px 0 6px;width:100%}
 .vbtn{flex:1;border:1.5px solid var(--line);background:#fff;padding:15px 10px;font:inherit;font-size:16px;font-weight:800;color:var(--sub);cursor:pointer;letter-spacing:.04em}
@@ -364,9 +365,11 @@ function renderPref(p){
     return `<div class="sec"><h3><span class="rank ${sec.cls}">${sec.rank}</span>${sec.title}（${items.length}件）</h3>`+
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
       `<div class="cards">`+items.map(x=>{ const cid='bk'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.floor(x.sc*10));
-        const links=(x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
+        const links = x.src==='mail'
+          ? (x.cd?`<a class="share" href="#go=${encodeURIComponent(p)}|${encodeURIComponent(x.cd)}">🔗 共有用ページ（社内）</a>`:'')
+          : (x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
-        return `<div class="card" id="${cid}">
+        return `<div class="card" id="${cid}" data-cd="${esc(x.cd||'')}">`+`
           <div class="ctop"><h4>${(x.ad && daysSince(x.ad)<=NEW_DAYS)?`<span class="newchip">NEW</span>`:``}${esc(x.n)}</h4>${x.sc?`<div class="sc"><i>出店偏差値</i><b>${x.sc}</b><span>ランク${esc(x.rk)}</span></div>`:`<div class="sc scwait"><i>出店偏差値</i><b>—</b><span>判定待ち</span></div>`}</div>
           <div class="badges">${x.pm?`<span class="bg pm ${x.pm>=10?'pmA':x.pm>=7?'pmB':'pmC'}">予測 家賃${x.pm}倍${x.pm>=10?'・狙い目':''}</span>`:''}<span class="bg fl">${floorBadge(x.s)}</span>${FOODBG[x.f]||''}<span class="bg">${esc(x.c)}</span></div>
           <dl class="kv">
@@ -377,14 +380,15 @@ function renderPref(p){
             <dt>所在地</dt><dd>${esc(x.a)}（${esc(x.st)}）</dd>
             <dt>敷金等</dt><dd>${esc(x.d)}</dd>
             ${x.pr?(()=>{const pp=String(x.pr).split('〜');return `<dt>利益目安</dt><dd>月次営業利益 <b>${esc(pp[0].trim())}円〜（保守）</b><small>　上振れ時 ${esc((pp[1]||'').trim())}円。類似既存店実績レンジの下限を基準表示</small></dd>`;})():''}${x.fn?`<dt>備考</dt><dd>${esc(x.fn)}</dd>`:''}
-            ${!x.tel?`<dt>問合せ</dt><dd>掲載サイト経由（無料会員登録で会社名・番地開示）</dd>`:''}
+            ${x.tel?'':(x.src==='mail'?`<dt>問合せ</dt><dd>本部 出店開発まで（社内メール取得物件）</dd>`:`<dt>問合せ</dt><dd>掲載サイト経由（無料会員登録で会社名・番地開示）</dd>`)}
           </dl>
           <div class="acts">${tel}${links}</div>
         </div>`;}).join('')+`</div></div>`;
   }).join('');
   buildMap(fitems);
   setView('list');
-  window.scrollTo(0,0);
+  if(pendingScrollCd){ const cd=pendingScrollCd; pendingScrollCd=null; setTimeout(()=>scrollToCd(cd),90); }
+  else window.scrollTo(0,0);
 }
 
 /* ============ password gate ============ */
@@ -444,5 +448,24 @@ function buildMap(items){
 }
 
 
-loadData().then(()=>renderTop()).catch(e=>{document.getElementById("regions").innerHTML="<p style=\"color:#a5372c\">データの読み込みに失敗しました。再読み込みしてください。</p>";});
+/* ============ 物件共有ディープリンク (#go=県|物件コード) ============ */
+let pendingScrollCd=null;
+function scrollToCd(cd){
+  const el=document.querySelector(`.card[data-cd="${(window.CSS&&CSS.escape)?CSS.escape(cd):cd}"]`);
+  if(el){el.scrollIntoView({block:'center'});el.style.outline='3px solid #c2352a';setTimeout(()=>el.style.outline='',2600);}
+}
+function handleGoHash(){
+  const m=/^#go=([^|]+)\|(.+)$/.exec(location.hash);
+  if(!m) return false;
+  const pref=decodeURIComponent(m[1]), cd=decodeURIComponent(m[2]);
+  pendingScrollCd=cd;
+  // その物件を含む区分(標準/上級)へ自動で合わせる
+  for(const tier of ['std','prem']){ const D=(tier==='prem'?PDATA:DATA); const d=D[pref];
+    if(d&&d.items.some(x=>x.cd===cd)){ if(TIER!==tier){TIER=tier;applyTierUI();} break; } }
+  requestPref(pref);
+  return true;
+}
+window.addEventListener('hashchange',()=>{ if(location.hash.startsWith('#go='))handleGoHash(); });
+loadData().then(()=>{ if(!(location.hash.startsWith('#go=')&&handleGoHash())) renderTop(); })
+  .catch(e=>{document.getElementById("regions").innerHTML="<p style=\"color:#a5372c\">データの読み込みに失敗しました。再読み込みしてください。</p>";});
 </script>

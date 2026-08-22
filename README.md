@@ -53,6 +53,10 @@ GitHub Pages: https://kento-umapro.github.io/doteppan-bukken/
 **既存どてっぱん店の除外**: 判定エンジンBASELINEの既存12店の住所と同一立地のリードは掲載しない
 （`leadlens.py` が住所コアで照合）。
 
+**メール物件の社内共有リンク**: メール物件はDataLensログインが必要な外部リンクの代わりに、各物件に
+物件コード `cd`（displayCode）を持たせ、カードに「🔗 共有用ページ（社内）」= `#go=<県>|<cd>` を表示する。
+このURLを開くと（monjaパスワード後）その物件へ直接ジャンプ・ハイライトする。DataLensアカウント不要。
+
 **巡回・収集は従来どおり広く行う**（重点7府県＝大阪・京都・滋賀・愛知・群馬・埼玉・千葉を広めに、
 全エリア20〜40坪で収集）。基準を外れた候補は削除せず、5km圏内は `hungree/extra.json`、
 それ以外は `tools/crawl/held.json` に退避保全する（judge_add.js が自動適用）。

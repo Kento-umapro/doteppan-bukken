@@ -119,7 +119,7 @@ def main():
         if pop500 < ta['m1000'][1] * 0.12:
             pop500 = (pop500 + ta['m1000'][1] * 0.24) / 2
         out.append({
-            'id': 'leadlens-' + str(pid), 'source': 'leadlens',
+            'id': 'leadlens-' + str(pid), 'source': 'leadlens', 'cd': L.get('displayCode') or '',
             'url': 'https://umapro.leadlens.nowcast-app.com/property#leadlens:' + str(pid),
             'pref': pref, 'title': (u.get('propertyUnitName') or '')[:60], 'addr': addr[:60],
             'rent': int(rent), 'area': round(area, 1), 'tsubo_price': round(tp),

@@ -89,7 +89,7 @@ async function nearby(ll) {
     const rentman = r.rent / 10000;
     const fn = [];
     const srcLabel = r.source === 'leadlens' ? 'DataLens' : r.source === 'tshop' ? 'テナントショップ' : 'テンポスマート';
-    const item = { ll: r.ll, sc, rk: rank(sc), pm, prv, src: (r.source === 'leadlens' ? 'mail' : 'net'), s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[srcLabel, url]], ad: TODAY };
+    const item = { ll: r.ll, sc, rk: rank(sc), pm, prv, src: (r.source === 'leadlens' ? 'mail' : 'net'), cd: r.cd || '', s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[srcLabel, url]], ad: TODAY };
     if (!hasC) { item.pv = 1; fn.push('競合データ取得待ち・暫定'); }
     if (r.juusyoku) fn.push('重飲食可');
     if (r.source !== 'tshop' && r.source !== 'leadlens') fn.push('番地はログイン後開示');
