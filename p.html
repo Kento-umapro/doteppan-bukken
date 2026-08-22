@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>物件詳細｜どてっぱん 出店物件情報</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--ink:#17130f;--paper:#f3ede1;--card:#fbf7ee;--line:#e0d5c0;--sub:#6f6553;--red:#c2352a;--gold:#8a6d2f}
 *{box-sizing:border-box}
@@ -24,7 +22,9 @@ dl{display:grid;grid-template-columns:88px 1fr;gap:8px 12px;margin:0}
 dt{color:var(--sub);font-weight:700;font-size:13px}
 dd{margin:0;font-size:15px}
 dd.rent b,.pmv{color:var(--red)}
-#map{height:300px;border-radius:12px;margin-top:14px;border:1px solid var(--line)}
+.gmap{width:100%;height:320px;border:1px solid var(--line);border-radius:12px;margin-top:14px;display:block}
+a.gmaplink{display:inline-block;margin-top:10px;color:var(--sub);font-size:13px;font-weight:700;text-decoration:none}
+a.gmaplink:hover{color:var(--ink)}
 .gate{position:fixed;inset:0;background:rgba(23,19,15,.9);display:none;align-items:center;justify-content:center;padding:20px;z-index:9}
 .gate.on{display:flex}
 .gbox{background:#fff;border-radius:16px;padding:24px;max-width:340px;width:100%;text-align:center}
@@ -89,14 +89,9 @@ function render(){
       ${x.fn?`<dt>備考</dt><dd>${esc(x.fn)}</dd>`:''}
       <dt>問合せ</dt><dd>本部 出店開発まで（社内メール取得物件）</dd>
     </dl>
-    ${x.ll?'<div id="map"></div>':''}
+    ${x.ll?`<iframe class="gmap" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${x.ll[0]},${x.ll[1]}&z=17&hl=ja&output=embed"></iframe>
+    <a class="gmaplink" href="https://www.google.com/maps/search/?api=1&query=${x.ll[0]},${x.ll[1]}" target="_blank" rel="noopener">📍 Googleマップアプリ／大きな地図で開く</a>`:''}
   </div>`;
-  if(x.ll&&typeof L!=='undefined'){
-    const m=L.map('map',{scrollWheelZoom:false}).setView(x.ll,16);
-    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,attribution:'地理院タイル'}).addTo(m);
-    L.marker(x.ll).addTo(m);
-    setTimeout(()=>m.invalidateSize(),120);
-  }
 }
 
 async function start(){ ITEM=await findItem(); render(); }
