@@ -89,7 +89,7 @@ function render(){
       ${x.fn?`<dt>備考</dt><dd>${esc(x.fn)}</dd>`:''}
       <dt>問合せ</dt><dd>本部 出店開発まで（社内メール取得物件）</dd>
     </dl>
-    ${x.ll?`<iframe class="gmap" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${x.ll[0]},${x.ll[1]}&z=17&hl=ja&output=embed"></iframe>
+    ${x.ll?`<iframe class="gmap" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=${x.ll[0]},${x.ll[1]}&t=&z=17&ie=UTF8&iwloc=&hl=ja&output=embed"></iframe>
     <a class="gmaplink" href="https://www.google.com/maps/search/?api=1&query=${x.ll[0]},${x.ll[1]}" target="_blank" rel="noopener">📍 Googleマップアプリ／大きな地図で開く</a>`:''}
   </div>`;
 }
