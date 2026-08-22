@@ -70,6 +70,10 @@ a{-webkit-tap-highlight-color:rgba(194,53,42,.2)}
 .tbtn.on small{color:#cbb27f}
 .tbtn.prem.on{background:linear-gradient(135deg,#3d2f16,#17130f);border-color:#8a6d2f;box-shadow:inset 0 0 0 1px #8a6d2f}
 .tbtn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.srctab{display:flex;gap:8px;margin:10px 0 2px}
+.sbtn{flex:1;border:1.5px solid var(--line);background:#fff;padding:9px 6px;font:inherit;font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;border-radius:10px;letter-spacing:.02em}
+.sbtn.on{background:var(--ink);color:#f5efe3;border-color:var(--ink)}
+.sbtn:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 .premnote{background:#faf5e6;border:1px solid #e2d3a8;border-radius:12px;padding:11px 15px;font-size:12.5px;color:#6b5a33;margin:12px 0 0;line-height:1.8}
 .tierchip{display:inline-block;vertical-align:4px;margin-left:8px;background:linear-gradient(135deg,#8a6d2f,#5c4718);color:#f7efd9;font-size:10.5px;font-weight:800;letter-spacing:.1em;border-radius:6px;padding:3px 10px}
 
@@ -176,6 +180,12 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
     <button class="tbtn prem" data-t="prem" role="tab" aria-selected="false">上級物件（1等立地）<small>坪単価 2万円超〜4万円・偏差値50以上</small></button>
   </div>
 
+  <div class="srctab" role="tablist" aria-label="情報源">
+    <button class="sbtn on" data-s="all" role="tab" aria-selected="true">すべて</button>
+    <button class="sbtn" data-s="net" role="tab" aria-selected="false">🌐 ネット情報</button>
+    <button class="sbtn" data-s="mail" role="tab" aria-selected="false">✉️ メール情報</button>
+  </div>
+
   <div class="criteria">
     <h2 id="critTitle">物件の目安基準（全エリア共通）</h2>
     <ul>
@@ -254,7 +264,12 @@ const REGIONS = [
 let DATA = {};   // 標準物件（坪単価2万円以下）
 let PDATA = {};  // 上級物件（1等立地・坪単価2万円超〜4万円・月額賃料100万円以下・偏差値50以上）
 let TIER = 'std';
+let SRC = 'all';   // 情報源フィルタ: all=すべて / net=ネット巡回 / mail=メール(DataLens)
+let CURRENT_PREF = null;   // 県ページ表示中の県名(nullならトップ)
 function tierData(){ return TIER === 'prem' ? PDATA : DATA; }
+function srcOf(x){ return x.src || 'net'; }             // 旧データはネット扱い
+function matchSrc(x){ return SRC === 'all' || srcOf(x) === SRC; }
+function srcItems(d){ return (d && d.items ? d.items : []).filter(matchSrc); }
 const NEW_DAYS = 3;      // 追加からこの日数は「新着」バッジ
 const EXPIRE_DAYS = 30;  // 追加からこの日数で自動非表示（更新スクリプト側でも除外）
 function daysSince(d){ return (Date.now() - new Date(d+'T00:00:00+09:00').getTime()) / 86400000; }
@@ -278,12 +293,12 @@ function renderTop(){
   const box=$('#regions');
   // 掲載のある県だけ表示（0件の県・県のない地方は非表示にして「該当なし」の羅列を防ぐ）
   box.innerHTML=REGIONS.map(([rn,ps])=>{
-    const btns = ps.filter(p=>{const h=D[p];return h && h.items.length;}).map(p=>{
-      const has=D[p];
-      const nn = has.items.filter(x=>x.ad && daysSince(x.ad) <= NEW_DAYS).length;
+    const btns = ps.filter(p=>{const h=D[p];return h && srcItems(h).length;}).map(p=>{
+      const items=srcItems(D[p]);
+      const nn = items.filter(x=>x.ad && daysSince(x.ad) <= NEW_DAYS).length;
       const badge = nn? `<span class="nbadge">新着${nn}件</span>` : '';
       return `<button class="pbtn has" data-p="${p}">${badge}${p}`+
-        `<span class="cnt">${has.items.length}件掲載</span></button>`;
+        `<span class="cnt">${items.length}件掲載</span></button>`;
     }).join('');
     return btns ? `<div class="region"><h3>${rn}</h3><div class="pgrid">${btns}</div></div>` : '';
   }).join('');
@@ -308,13 +323,20 @@ document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>{
   if(TIER === b.dataset.t) return;
   TIER = b.dataset.t;
   applyTierUI();
-  renderTop();
+  if(CURRENT_PREF && sessionStorage.getItem('dp_auth')==='1') renderPref(CURRENT_PREF); else renderTop();
+}));
+document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{
+  if(SRC === b.dataset.s) return;
+  SRC = b.dataset.s;
+  document.querySelectorAll('.sbtn').forEach(x=>{const on=x.dataset.s===SRC;x.classList.toggle('on',on);x.setAttribute('aria-selected',on?'true':'false');});
+  if(CURRENT_PREF && sessionStorage.getItem('dp_auth')==='1') renderPref(CURRENT_PREF); else renderTop();
 }));
 
 const FOODBG={ok:'<span class="bg ok">重飲食可</span>',lt:'<span class="bg lt">軽飲食向き</span>',cn:'<span class="bg cn">飲食条件 要確認</span>'};
 function floorBadge(sec){return {f1:"1階 路面",f2:"2階",b1:"地下1階",f3:"3階以上"}[sec];}
 
 function renderPref(p){
+  CURRENT_PREF = p;
   $('#top').classList.add('hide'); $('#pref').classList.remove('hide');
   const prem = TIER === 'prem';
   $('#prefName').innerHTML = esc(p) + (prem ? '<span class="tierchip">上級物件</span>' : '');
@@ -327,8 +349,9 @@ function renderPref(p){
       : `<div class="empty"><b>${esc(p)}は現在物件を調査中です</b><p>目安基準（23〜40坪・坪単価8,000〜20,000円・飲食可・1階路面優先）で順次追加します。<br>お急ぎの場合は本部 出店開発までご連絡ください。</p></div>`;
     window.scrollTo(0,0); return;
   }
-  $('#prefMeta').textContent=`${prem?'【上級物件・1等立地】':''}対象: ${d.note}／掲載 ${d.items.length}件`;
-  if(!d.items.length){
+  const fitems=srcItems(d);
+  $('#prefMeta').textContent=`${prem?'【上級物件・1等立地】':''}対象: ${d.note}／掲載 ${fitems.length}件`;
+  if(!fitems.length){
     $('#vtoggle').style.display='none';$('#mapWrap').classList.add('hide');
     body.innerHTML = prem
       ? `<div class="empty"><b>調査済み・現在の募集に適合物件なし</b><p>直近の調査では、上級基準（23〜40坪・坪単価2万円超〜4万円・月額賃料100万円以下・単一フロア・飲食可・出店偏差値50以上）に適合する募集が見つかりませんでした。定期的に再調査して更新します。</p></div>`
@@ -336,7 +359,7 @@ function renderPref(p){
     window.scrollTo(0,0); return;
   }
   body.innerHTML=SECTIONS.map(sec=>{
-    const items=d.items.filter(x=>x.s===sec.id);
+    const items=fitems.filter(x=>x.s===sec.id);
     if(!items.length) return '';
     return `<div class="sec"><h3><span class="rank ${sec.cls}">${sec.rank}</span>${sec.title}（${items.length}件）</h3>`+
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
@@ -359,7 +382,7 @@ function renderPref(p){
           <div class="acts">${tel}${links}</div>
         </div>`;}).join('')+`</div></div>`;
   }).join('');
-  buildMap(d.items);
+  buildMap(fitems);
   setView('list');
   window.scrollTo(0,0);
 }
@@ -384,7 +407,7 @@ function tryPass(){
 $('#pwGo').addEventListener('click',tryPass);
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryPass();});
 $('#pwCancel').addEventListener('click',()=>{$('#gate').classList.remove('on');pendingPref=null;});
-$('#back').addEventListener('click',e=>{e.preventDefault();$('#pref').classList.add('hide');$('#top').classList.remove('hide');window.scrollTo(0,0);});
+$('#back').addEventListener('click',e=>{e.preventDefault();CURRENT_PREF=null;$('#pref').classList.add('hide');$('#top').classList.remove('hide');renderTop();window.scrollTo(0,0);});
 /* ============ マップ表示 ============ */
 let mapObj=null;
 const FLCOLOR={f1:'#c2352a',f2:'#7a6a4f',b1:'#5d6672',f3:'#8a8378'};

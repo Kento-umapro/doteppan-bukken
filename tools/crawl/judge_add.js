@@ -5,10 +5,10 @@
  *   競合中立=暫定 pv:1 として掲載）
  * - 偏差値(sc)は index.html の計算エンジンで算出（東京都は -2.0pt）
  * - v4予測倍率(pm)= 国勢調査商圏の売上予測 ÷ 家賃（訪日エリア×1.7・競合で微調整）
- * - 掲載下限(2026-08-20 月商＋2km商圏基準・標準/上級 共通):
- *     20坪以上 / 出店偏差値50以上 / 予測月商300万以上 / 商圏500m就業人口1000以上 /
- *     2km総人口3万以上 / 2km就業年齢人口3万以上(労働者数の代理)
- *   （「月商300万を狙える都市商圏」に限定。予測月商は商圏人口から算出するため商圏が直接効く。
+ * - 掲載下限(2026-08-20 月商＋倍率＋2km商圏基準・標準/上級 共通):
+ *     20坪以上 / 出店偏差値50以上 / 予測月商300万以上 / 予測倍率10倍以上(家賃=管理費込み) /
+ *     商圏500m就業人口1000以上 / 2km総人口3万以上 / 2km就業年齢人口3万以上(労働者数の代理)
+ *   （予測月商は商圏人口から算出。倍率10倍=家賃の10倍を売るのは当たり前の最低条件。
  *    真の労働者数=経済センサス従業者数は未取得のため、就業年齢人口で代理している）
  * - 各物件に ad=今日 を付与。掲載30日超は別途 expire で処理。
  *
@@ -79,17 +79,20 @@ async function nearby(ll) {
     pr *= adj;
     const pm = Math.round(pr / r.rent * 10) / 10;
     const prv = Math.round(pr / 1e4);      // 予測月商(万円)=予測坪月商(商圏人口ベース)×坪数
-    // 掲載下限(2026-08-20 月商＋2km商圏基準): 20坪以上・予測月商300万以上・
+    // 掲載下限(2026-08-20 月商＋倍率＋2km商圏基準): 20坪以上・予測月商300万以上・
+    // 予測倍率10倍以上(家賃の10倍を売るのは当たり前・家賃は管理費込み)・
     // 商圏500m就業人口1000以上・2km総人口3万以上・2km就業年齢人口3万以上(労働者数の代理)。
-    if (r.area < 20 || prv < 300 || (r.pop500 || 0) < 1000) continue;
+    if (r.area < 20 || prv < 300 || pm < 10 || (r.pop500 || 0) < 1000) continue;
     if ((r.m2000_total || 0) < 30000 || (r.m2000 || 0) < 30000) continue;
     const tier = r.bucket, pref = r.pref;
     if (!d[tier][pref]) d[tier][pref] = { note: `${pref}／テンポスマート巡回`, items: [] };
     const rentman = r.rent / 10000;
     const fn = [];
-    const item = { ll: r.ll, sc, rk: rank(sc), pm, prv, s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[r.source==='tshop'?'テナントショップ':'テンポスマート', url]], ad: TODAY };
+    const srcLabel = r.source === 'leadlens' ? 'DataLens' : r.source === 'tshop' ? 'テナントショップ' : 'テンポスマート';
+    const item = { ll: r.ll, sc, rk: rank(sc), pm, prv, src: (r.source === 'leadlens' ? 'mail' : 'net'), s: r.fc, n: r.title, a: r.addr, st: r.station, t: `${r.area}坪`, r: (rentman === Math.floor(rentman) ? `${rentman}万円` : `${rentman.toFixed(1)}万円`), rs: '', tk: `約${(r.tsubo_price / 10000).toFixed(2)}万円`, d: '要問い合わせ', c: 'から探す', f: 'ok', u: [[srcLabel, url]], ad: TODAY };
     if (!hasC) { item.pv = 1; fn.push('競合データ取得待ち・暫定'); }
-    if (r.source !== 'tshop') fn.push('番地はログイン後開示');
+    if (r.juusyoku) fn.push('重飲食可');
+    if (r.source !== 'tshop' && r.source !== 'leadlens') fn.push('番地はログイン後開示');
     item.fn = fn.join('／');
     d[tier][pref].items.push(item);
     exist.add(url); added++;
