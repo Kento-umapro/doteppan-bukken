@@ -360,7 +360,7 @@ function renderPref(p){
     window.scrollTo(0,0); return;
   }
   body.innerHTML=SECTIONS.map(sec=>{
-    const items=fitems.filter(x=>x.s===sec.id);
+    const items=fitems.filter(x=>x.s===sec.id).sort((a,b)=>(b.sc||0)-(a.sc||0));  // 偏差値の高い順
     if(!items.length) return '';
     return `<div class="sec"><h3><span class="rank ${sec.cls}">${sec.rank}</span>${sec.title}（${items.length}件）</h3>`+
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
