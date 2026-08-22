@@ -325,13 +325,13 @@ document.querySelectorAll('.tbtn').forEach(b=>b.addEventListener('click',()=>{
   if(TIER === b.dataset.t) return;
   TIER = b.dataset.t;
   applyTierUI();
-  if(CURRENT_PREF && sessionStorage.getItem('dp_auth')==='1') renderPref(CURRENT_PREF); else renderTop();
+  if(CURRENT_PREF && localStorage.getItem('dp_auth')==='1') renderPref(CURRENT_PREF); else renderTop();
 }));
 document.querySelectorAll('.sbtn').forEach(b=>b.addEventListener('click',()=>{
   if(SRC === b.dataset.s) return;
   SRC = b.dataset.s;
   document.querySelectorAll('.sbtn').forEach(x=>{const on=x.dataset.s===SRC;x.classList.toggle('on',on);x.setAttribute('aria-selected',on?'true':'false');});
-  if(CURRENT_PREF && sessionStorage.getItem('dp_auth')==='1') renderPref(CURRENT_PREF); else renderTop();
+  if(CURRENT_PREF && localStorage.getItem('dp_auth')==='1') renderPref(CURRENT_PREF); else renderTop();
 }));
 
 const FOODBG={ok:'<span class="bg ok">重飲食可</span>',lt:'<span class="bg lt">軽飲食向き</span>',cn:'<span class="bg cn">飲食条件 要確認</span>'};
@@ -367,7 +367,7 @@ function renderPref(p){
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
       `<div class="cards">`+items.map(x=>{ const cid='bk'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.floor(x.sc*10));
         const links = x.src==='mail'
-          ? (x.cd?`<a class="share" href="#go=${encodeURIComponent(p)}|${encodeURIComponent(x.cd)}" data-share="1">🔗 共有リンクをコピー</a>`:'')
+          ? (x.cd?`<a class="share" href="#go=${encodeURIComponent(p)}|${encodeURIComponent(x.cd)}" target="_blank" rel="noopener">🔗 物件ページを開く</a>`:'')
           : (x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
         return `<div class="card" id="${cid}" data-cd="${esc(x.cd||'')}">`+`
@@ -395,13 +395,13 @@ function renderPref(p){
 /* ============ password gate ============ */
 let pendingPref=null;
 function requestPref(p){
-  if(sessionStorage.getItem('dp_auth')==='1'){ renderPref(p); return; }
+  if(localStorage.getItem('dp_auth')==='1'){ renderPref(p); return; }
   pendingPref=p; $('#pwErr').textContent=''; $('#pw').value='';
   $('#gate').classList.add('on'); setTimeout(()=>$('#pw').focus(),50);
 }
 function tryPass(){
   if($('#pw').value===PASS){
-    sessionStorage.setItem('dp_auth','1');
+    localStorage.setItem('dp_auth','1');
     $('#gate').classList.remove('on');
     if(pendingPref) renderPref(pendingPref);
   }else{
@@ -467,15 +467,6 @@ function handleGoHash(){
   return true;
 }
 window.addEventListener('hashchange',()=>{ if(location.hash.startsWith('#go='))handleGoHash(); });
-// 「共有リンクをコピー」: カード上ではその物件へ移動せず、共有URLをクリップボードにコピー
-document.addEventListener('click',ev=>{
-  const a=ev.target.closest('a.share[data-share]'); if(!a) return;
-  ev.preventDefault();
-  const url=location.origin+location.pathname+a.getAttribute('href');
-  const done=()=>{const t=a.textContent;a.textContent='✓ コピーしました';a.classList.add('copied');setTimeout(()=>{a.textContent=t;a.classList.remove('copied');},1800);};
-  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(()=>{prompt('この共有URLをコピーしてください',url);}); }
-  else { const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){prompt('この共有URLをコピーしてください',url);}document.body.removeChild(ta); }
-});
 loadData().then(()=>{ if(!(location.hash.startsWith('#go=')&&handleGoHash())) renderTop(); })
   .catch(e=>{document.getElementById("regions").innerHTML="<p style=\"color:#a5372c\">データの読み込みに失敗しました。再読み込みしてください。</p>";});
 </script>
