@@ -138,7 +138,8 @@ h2.pref{margin:2px 0 4px;font-size:24px;font-weight:800;letter-spacing:.04em}
 .acts a{flex:1;min-width:130px;text-align:center;text-decoration:none;font-size:13px;font-weight:800;
   padding:11px 10px;border-radius:10px;border:1.5px solid var(--ink);color:var(--ink);background:#fff;letter-spacing:.02em}
 .acts a.tel{background:var(--red);border-color:var(--red);color:#fff}
-.acts a.share{background:#eef3ee;border-color:#5a7a5a;color:#2f4a2f}
+.acts a.share{background:#eef3ee;border-color:#5a7a5a;color:#2f4a2f;cursor:pointer}
+.acts a.share.copied{background:#2f4a2f;border-color:#2f4a2f;color:#fff}
 .acts a:focus-visible{outline:3px solid var(--red);outline-offset:2px}
 .vtoggle{display:flex;margin:12px 0 6px;width:100%}
 .vbtn{flex:1;border:1.5px solid var(--line);background:#fff;padding:15px 10px;font:inherit;font-size:16px;font-weight:800;color:var(--sub);cursor:pointer;letter-spacing:.04em}
@@ -366,7 +367,7 @@ function renderPref(p){
       (sec.sd?`<p class="sd">${sec.sd}</p>`:'')+
       `<div class="cards">`+items.map(x=>{ const cid='bk'+(x.u&&x.u[0]?x.u[0][1].replace(/\D/g,'').slice(-6):Math.floor(x.sc*10));
         const links = x.src==='mail'
-          ? (x.cd?`<a class="share" href="#go=${encodeURIComponent(p)}|${encodeURIComponent(x.cd)}">🔗 共有用ページ（社内）</a>`:'')
+          ? (x.cd?`<a class="share" href="#go=${encodeURIComponent(p)}|${encodeURIComponent(x.cd)}" data-share="1">🔗 共有リンクをコピー</a>`:'')
           : (x.u||[]).map(([lb,url])=>`<a href="${url}" target="_blank" rel="noopener">掲載ページ（${esc(lb)}）</a>`).join('');
         const tel=x.tel?`<a class="tel" href="tel:${x.tel[1].replace(/-/g,'')}">☎ ${esc(x.tel[0])} ${x.tel[1]}</a>`:'';
         return `<div class="card" id="${cid}" data-cd="${esc(x.cd||'')}">`+`
@@ -466,6 +467,15 @@ function handleGoHash(){
   return true;
 }
 window.addEventListener('hashchange',()=>{ if(location.hash.startsWith('#go='))handleGoHash(); });
+// 「共有リンクをコピー」: カード上ではその物件へ移動せず、共有URLをクリップボードにコピー
+document.addEventListener('click',ev=>{
+  const a=ev.target.closest('a.share[data-share]'); if(!a) return;
+  ev.preventDefault();
+  const url=location.origin+location.pathname+a.getAttribute('href');
+  const done=()=>{const t=a.textContent;a.textContent='✓ コピーしました';a.classList.add('copied');setTimeout(()=>{a.textContent=t;a.classList.remove('copied');},1800);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(()=>{prompt('この共有URLをコピーしてください',url);}); }
+  else { const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){prompt('この共有URLをコピーしてください',url);}document.body.removeChild(ta); }
+});
 loadData().then(()=>{ if(!(location.hash.startsWith('#go=')&&handleGoHash())) renderTop(); })
   .catch(e=>{document.getElementById("regions").innerHTML="<p style=\"color:#a5372c\">データの読み込みに失敗しました。再読み込みしてください。</p>";});
 </script>
