@@ -33,14 +33,27 @@ PREF = {'01': '北海道', '02': '青森県', '03': '岩手県', '04': '宮城�
         '43': '熊本県', '44': '大分県', '45': '宮崎県', '46': '鹿児島県', '47': '沖縄県'}
 
 
-def fetch_leads():
+def get_token():
+    """LEADLENS_TOKEN があればそれを、無ければ LEADLENS_USER/PASS でSRP自動ログインして取得。"""
     tok = os.environ.get('LEADLENS_TOKEN', '').strip()
+    if tok:
+        return tok
+    u, p = os.environ.get('LEADLENS_USER'), os.environ.get('LEADLENS_PASS')
+    if u and p:
+        from cognito_srp import srp_login   # 同ディレクトリ
+        pool = os.environ.get('LEADLENS_POOL', 'ap-northeast-1_m6RP7KvHC')
+        client = os.environ.get('LEADLENS_CLIENT', '7ek32ebdlid2o5i84bsikocug7')
+        return srp_login(pool, client, u, p)['AccessToken']
+    return ''
+
+
+def fetch_leads():
+    tok = get_token()
     if tok:
         out = subprocess.run(['curl', '-sS', '-m', '60', '--cacert', CA,
                               '-H', 'Authorization: Bearer ' + tok, API],
                              capture_output=True, text=True).stdout
-        d = json.loads(out)
-        return d['propertyLeads']
+        return json.loads(out)['propertyLeads']
     return json.load(open(CACHE))['propertyLeads']
 
 
