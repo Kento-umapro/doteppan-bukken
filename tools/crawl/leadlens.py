@@ -143,8 +143,11 @@ def main():
             'priority': True, 'juusyoku': True,
         })
 
-    json.dump(out, open(os.path.join(BASE, 'candidates_geo.json'), 'w'), ensure_ascii=False)
-    print(f'LeadLens 重飲食可・基準内候補 {len(out)}件 → candidates_geo.json')
+    # geocode_census.py の出力(temposmart/tshop分)があれば追記、無ければ新規作成
+    geo_path = os.path.join(BASE, 'candidates_geo.json')
+    prev = json.load(open(geo_path)) if os.path.exists(geo_path) else []
+    json.dump(prev + out, open(geo_path, 'w'), ensure_ascii=False)
+    print(f'LeadLens 重飲食可・基準内候補 {len(out)}件 → candidates_geo.json (計{len(prev)+len(out)})')
 
 
 if __name__ == '__main__':
