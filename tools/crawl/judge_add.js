@@ -79,10 +79,11 @@ async function nearby(ll) {
     pr *= adj;
     const pm = Math.round(pr / r.rent * 10) / 10;
     const prv = Math.round(pr / 1e4);      // 予測月商(万円)=予測坪月商(商圏人口ベース)×坪数
-    // 掲載下限(2026-08-20 月商＋倍率＋2km商圏基準): 20坪以上・予測月商300万以上・
-    // 予測倍率10倍以上(家賃の10倍を売るのは当たり前・家賃は管理費込み)・
+    // 掲載下限(2026-08-31 月商＋倍率＋2km商圏基準): 20坪以上・予測月商300万以上・
+    // 予測倍率(家賃=管理費込み)は 標準10倍以上／上級7倍以上(1等立地は坪単価が高く倍率が伸びないため緩和)・
     // 商圏500m就業人口1000以上・2km総人口3万以上・2km就業年齢人口3万以上(労働者数の代理)。
-    if (r.area < 20 || prv < 300 || pm < 10 || (r.pop500 || 0) < 1000) continue;
+    const pmMin = r.bucket === 'premium' ? 7 : 10;
+    if (r.area < 20 || prv < 300 || pm < pmMin || (r.pop500 || 0) < 1000) continue;
     if ((r.m2000_total || 0) < 30000 || (r.m2000 || 0) < 30000) continue;
     const tier = r.bucket, pref = r.pref;
     if (!d[tier][pref]) d[tier][pref] = { note: `${pref}／テンポスマート巡回`, items: [] };
