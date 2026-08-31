@@ -62,6 +62,17 @@ async function nearby(ll) {
   for (const r of cand) {
     const url = r.url || `https://www.temposmart.jp/estates/${r.id}`;
     if (exist.has(url)) continue;
+    // --- 競合(Google)取得前の安価な事前フィルタ ---
+    // 商圏は確定条件でそのまま足切り。月商/倍率は競合補正の上振れ(×1.2)を見込んでも届かないものを除外。
+    if (r.area < 20 || (r.pop500 || 0) < 1000) continue;
+    if ((r.m2000_total || 0) < 30000 || (r.m2000 || 0) < 30000) continue;
+    {
+      let predB = A + B * r.pop500;
+      if ((r.pref === '京都府' || r.pref === '大阪府') && INBOUND_KW.some(k => r.addr.includes(k) || r.title.includes(k))) predB *= INB;
+      const prB = predB * r.area * 1.2;
+      if (prB / 1e4 < 300) continue;
+      if (prB / r.rent < (r.bucket === 'premium' ? 7 : 10)) continue;
+    }
     const pl = await nearby(r.ll);
     const hasC = pl !== null;
     const c = { direct: 0, synergy: 0, neutral: 0, directW: 0, synergyW: 0, neutralW: 0 };
