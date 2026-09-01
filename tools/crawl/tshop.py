@@ -107,6 +107,8 @@ def main():
         addr, station, fc = parse_detail(html)
         if not addr:
             continue
+        if fc != 'f1':
+            continue  # 滋賀は重飲食(鉄板・もんじゃ)が現実的な1階路面のみ掲載。t-shopは重飲食可否非記載のため階で判断
         cand.append(dict(
             id='tshop-' + p['id'], url=f"{HOST}/detail/e-{p['id']}/",
             source='tshop', pref='滋賀県', title=p['name'][:60], addr=addr,
