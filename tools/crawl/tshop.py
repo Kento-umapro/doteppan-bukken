@@ -58,10 +58,16 @@ def floor_code_from_detail(html):
         return 'f2'
     return 'f3'
 
-def parse_detail(html):
-    addr = (re.search(r'(滋賀県[^\s<、,）)]{3,30})', html) or [None, ''])[1]
+def addr_from_name(name):
+    """物件名(例『大津市南郷1貸店舗・事務所』)から所在地を導出。詳細ページは会社所在地しか
+    載らないため、地名を含む物件名から町丁目まで取り出して『滋賀県』を付ける。"""
+    loc = re.split(r'(貸店舗|住店舗|店舗|事務所|倉庫|工場|テナント|戸建|住宅|貸|・)', name)[0].strip()
+    loc = re.sub(r'[（(].*$', '', loc).strip()
+    return ('滋賀県' + loc)[:40] if loc else ''
+
+def parse_detail(html, name=''):
     station = (re.search(r'([^\s<>「」]{2,10}駅)', html) or [None, ''])[1]
-    return addr[:40], station[:20], floor_code_from_detail(html)
+    return addr_from_name(name), station[:20], floor_code_from_detail(html)
 
 def main():
     cand_path = os.path.join(BASE, 'candidates.json')
@@ -104,7 +110,7 @@ def main():
     added = 0
     for p in picked:
         html = fetch(f"{HOST}/detail/e-{p['id']}/")
-        addr, station, fc = parse_detail(html)
+        addr, station, fc = parse_detail(html, p['name'])
         if not addr:
             continue
         if fc != 'f1':
